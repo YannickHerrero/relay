@@ -1,3 +1,6 @@
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { expect, test, type Page } from "@playwright/test";
 
 const ownerPassword = "1234";
@@ -10,11 +13,16 @@ test.describe.serial("Relay owner workflow", () => {
       await page.goto("/");
       await expect(page).toHaveURL(/\/setup$/);
       await expect(page.getByRole("heading", { name: /Secure Relay/ })).toBeVisible();
+      await writeFile(
+        join(process.cwd(), ".relay-e2e-data", "worker-heartbeat.json"),
+        JSON.stringify({ workerId: "relay-e2e-worker", at: new Date().toISOString() }),
+      );
       await page.getByLabel("Owner password").fill(ownerPassword);
       await page.getByRole("button", { name: "Create owner account" }).click();
       await expect(page).toHaveURL(/\/board$/);
       expect(page.url()).not.toContain("password=");
       await expect(page.getByRole("heading", { name: "Workboard" })).toBeVisible();
+      await expect(page.getByText("online · 0 queued")).toBeVisible();
     } finally {
       await context.close();
     }

@@ -16,6 +16,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import type { RelayHealth } from "@/server/health";
+
 import { HostStatus } from "./host-status";
 import { NotificationCenter } from "./notification-center";
 
@@ -28,7 +30,13 @@ const navigation = [
   { href: "/archive", label: "Archive", icon: Archive },
 ] as const;
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  initialHealth,
+}: {
+  children: ReactNode;
+  initialHealth: RelayHealth;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -54,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="relay-crumb">Local workspace</div>
         <div className="relay-top-actions">
-          <HostStatus compact />
+          <HostStatus compact initialHealth={initialHealth} />
           <Link href="/projects" className="button">
             <Settings2 size={14} /> Configure
           </Link>
@@ -100,7 +108,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="relay-host-block">
           <p className="relay-side-label">Connected host</p>
           <div className="relay-host-card">
-            <HostStatus />
+            <HostStatus initialHealth={initialHealth} />
           </div>
         </div>
         <p className="relay-side-note">

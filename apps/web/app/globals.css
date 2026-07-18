@@ -245,6 +245,11 @@ textarea.field {
   background: var(--relay-danger);
 }
 
+.relay-agent-state i.checking,
+.relay-status-dot.checking {
+  background: var(--relay-subtle);
+}
+
 .relay-notification-center {
   position: relative;
 }

@@ -2,36 +2,44 @@
 
 import { useEffect, useState } from "react";
 
-type Health = {
-  online: boolean;
-  workerId: string | null;
-  activeAgents: number;
-  queuedJobs: number;
-};
+import type { RelayHealth } from "@/server/health";
 
-export function HostStatus({ compact = false }: { compact?: boolean }) {
-  const [health, setHealth] = useState<Health>();
+export function HostStatus({
+  compact = false,
+  initialHealth,
+}: {
+  compact?: boolean;
+  initialHealth?: RelayHealth;
+}) {
+  const [health, setHealth] = useState<RelayHealth | undefined>(initialHealth);
   useEffect(() => {
     async function load() {
       const response = await fetch("/api/health");
-      if (response.ok) setHealth((await response.json()) as Health);
+      if (response.ok) setHealth((await response.json()) as RelayHealth);
     }
     void load();
     const timer = setInterval(() => void load(), 5_000);
     return () => clearInterval(timer);
   }, []);
+  const statusClass = health ? (health.online ? "" : "offline") : "checking";
   if (compact)
     return (
       <span className="relay-agent-state">
-        <i className={health?.online ? "" : "offline"} />{" "}
+        <i className={statusClass} />{" "}
         {health ? `${health.activeAgents} agents active` : "Checking worker"}
       </span>
     );
   return (
     <>
-      <span className={`relay-status-dot ${health?.online ? "" : "offline"}`} />
+      <span className={`relay-status-dot ${statusClass}`} />
       <strong>Relay host</strong>
-      <small>{health?.online ? `online · ${health.queuedJobs} queued` : "worker offline"}</small>
+      <small>
+        {health
+          ? health.online
+            ? `online · ${health.queuedJobs} queued`
+            : "worker offline"
+          : "checking worker"}
+      </small>
     </>
   );
 }

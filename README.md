@@ -50,7 +50,7 @@ Relay reads `.env` automatically. Open the `RELAY_ORIGIN` address, create the si
 make dev
 ```
 
-Use `make unserve` when Relay should no longer be available through Tailscale.
+Use `make unserve` when a development session should no longer be available through Tailscale. For durable production operation, build once and use `make start`, `make status`, and `make stop`; these commands manage a Relay-owned user LaunchAgent and its matching Serve configuration together.
 
 Authenticate Codex under the same macOS account before starting real agent work:
 
@@ -98,10 +98,12 @@ Configuration is validated and versioned when a project is registered or refresh
 ## Development
 
 ```bash
-make dev          # Load .env, configure Tailscale Serve, and start web + worker
-make dev-local    # Load .env and start web + worker locally
-make serve-status
-make unserve
+make dev             # Configure Serve and start web + worker in development mode
+make dev-local       # Start web + worker locally in development mode
+make start           # Start the production build through a user LaunchAgent
+make status          # Inspect production web, worker, launchd, and Serve status
+make rebuild-restart # Rebuild and restart production
+make stop            # Stop production and remove Relay's Serve configuration
 make check
 ```
 
@@ -121,7 +123,7 @@ The end-to-end suite uses an isolated `.relay-e2e-data` directory and a temporar
 
 - [`docs/architecture.md`](docs/architecture.md) — process, persistence, state, and recovery design
 - [`docs/configuration.md`](docs/configuration.md) — project commands and recipes
-- [`docs/operations.md`](docs/operations.md) — PM2, backups, Tailscale, and troubleshooting
+- [`docs/operations.md`](docs/operations.md) — launchd, backups, Tailscale, and troubleshooting
 - [`docs/security.md`](docs/security.md) — account isolation, credentials, and trust boundaries
 
 ## V1 boundaries

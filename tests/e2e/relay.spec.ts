@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const ownerPassword = "relay-e2e-owner-password";
+const ownerPassword = "1234";
 
 test.describe.serial("Relay owner workflow", () => {
   test("secures the first-run application", async ({ page }) => {

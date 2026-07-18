@@ -6,7 +6,7 @@ import { database } from "@/server/database";
 import { assertMutationOrigin } from "@/server/security";
 import { users } from "@relay/db";
 
-const bodySchema = z.object({ password: z.string().min(12).max(256) });
+const bodySchema = z.object({ password: z.string().min(4).max(256) });
 
 export async function POST(request: Request) {
   try {

@@ -40,14 +40,14 @@ export function AuthForm({ mode }: { mode: "setup" | "login" }) {
           name="password"
           type="password"
           autoComplete={mode === "setup" ? "new-password" : "current-password"}
-          minLength={mode === "setup" ? 12 : 1}
+          minLength={mode === "setup" ? 4 : 1}
           maxLength={256}
           required
           autoFocus
         />
         {mode === "setup" ? (
           <p className="mt-2 text-xs text-[var(--relay-muted)]">
-            Use at least 12 characters. Relay stores an Argon2id hash.
+            Use at least 4 characters. Relay stores an Argon2id hash.
           </p>
         ) : null}
       </div>

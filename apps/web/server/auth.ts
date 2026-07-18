@@ -105,7 +105,7 @@ function hashToken(token: string): string {
 }
 
 function validatePassword(password: string): void {
-  if (password.length < 12 || password.length > 256) {
-    throw new Error("Password must contain between 12 and 256 characters");
+  if (password.length < 4 || password.length > 256) {
+    throw new Error("Password must contain between 4 and 256 characters");
   }
 }

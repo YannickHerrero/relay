@@ -663,6 +663,299 @@ textarea.field {
   font: 10px var(--relay-font-mono);
 }
 
+.relay-file-field {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 5px 12px;
+  border: 1px dashed var(--relay-border-strong);
+  border-radius: var(--relay-radius-sm);
+  padding: 12px;
+}
+
+.relay-file-field > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.relay-file-field input {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  max-width: 230px;
+  font-size: 11px;
+}
+
+.relay-file-field small {
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-agent-choice {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  align-items: center;
+  gap: 9px;
+  border-radius: var(--relay-radius-sm);
+  background: var(--relay-accent-soft);
+  padding: 10px 12px;
+}
+
+.relay-agent-choice strong {
+  font-size: 12px;
+}
+
+.relay-agent-choice p {
+  margin: 1px 0 0;
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-board-page {
+  display: grid;
+  min-height: calc(100vh - 56px);
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.relay-board-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 25px 28px 17px;
+}
+
+.relay-board-head h1 {
+  margin: 4px 0 2px;
+  font-size: 25px;
+  letter-spacing: -0.045em;
+}
+
+.relay-board-head p:last-child {
+  margin: 0;
+  color: var(--relay-muted);
+  font-size: 12px;
+}
+
+.relay-board-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.relay-board-filters {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-top: 1px solid var(--relay-border);
+  padding: 10px 28px;
+}
+
+.relay-board-filters select,
+.relay-search {
+  height: 32px;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-sm);
+  background: var(--relay-surface);
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-board-filters select {
+  padding: 0 28px 0 9px;
+}
+
+.relay-search {
+  display: flex;
+  min-width: 210px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 9px;
+}
+
+.relay-search input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--relay-fg);
+  font: 12px var(--relay-font-sans);
+}
+
+.relay-board-filters .button {
+  min-height: 32px;
+  padding-block: 5px;
+}
+
+.relay-clear-filter {
+  color: var(--relay-muted);
+  font-size: 11px;
+}
+
+.relay-board {
+  display: flex;
+  min-height: 480px;
+  overflow: auto;
+  border-top: 1px solid var(--relay-border);
+  scroll-snap-type: x proximity;
+}
+
+.relay-column {
+  width: 276px;
+  flex: 0 0 276px;
+  border-right: 1px solid var(--relay-border);
+  padding: 13px 10px 30px;
+  scroll-snap-align: start;
+}
+
+.relay-column > header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 11px;
+}
+
+.relay-column > header h2 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.relay-column > header span {
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-task-card {
+  display: block;
+  margin-bottom: 9px;
+  color: inherit;
+  padding: 12px;
+  text-decoration: none;
+  transition:
+    transform var(--relay-motion-fast),
+    border-color var(--relay-motion-fast);
+}
+
+.relay-task-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--relay-border-strong);
+}
+
+.relay-card-project {
+  display: flex;
+  justify-content: space-between;
+  gap: 7px;
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-card-project span:last-child {
+  text-transform: capitalize;
+}
+
+.relay-task-card h3 {
+  margin: 7px 0 10px;
+  font-size: 13px;
+  line-height: 1.35;
+  letter-spacing: -0.012em;
+}
+
+.relay-card-badges {
+  display: flex;
+  gap: 5px;
+}
+
+.relay-priority,
+.relay-blocked {
+  border-radius: 99px;
+  background: var(--relay-bg);
+  color: var(--relay-muted);
+  padding: 2px 6px;
+  font: 9px var(--relay-font-mono);
+  text-transform: uppercase;
+}
+
+.priority-urgent,
+.relay-blocked {
+  background: var(--relay-danger-soft);
+  color: var(--relay-danger);
+}
+
+.priority-high {
+  background: var(--relay-warning-soft);
+  color: color-mix(in oklch, var(--relay-warning) 78%, var(--relay-fg));
+}
+
+.relay-card-runtime {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 9px;
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-runtime {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-transform: uppercase;
+}
+
+.relay-runtime i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--relay-subtle);
+}
+
+.runtime-agent_running i {
+  background: var(--relay-accent);
+}
+
+.runtime-waiting_for_user i {
+  background: var(--relay-warning);
+}
+
+.runtime-failed i,
+.runtime-blocked i {
+  background: var(--relay-danger);
+}
+
+.relay-progress {
+  height: 3px;
+  overflow: hidden;
+  margin: 10px 0 5px;
+  border-radius: 99px;
+  background: var(--relay-border);
+}
+
+.relay-progress i {
+  display: block;
+  height: 100%;
+  background: var(--relay-fg);
+}
+
+.relay-card-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-column-empty {
+  display: grid;
+  min-height: 80px;
+  place-items: center;
+  border: 1px dashed var(--relay-border);
+  border-radius: var(--relay-radius-md);
+  color: var(--relay-subtle);
+  font: 10px var(--relay-font-mono);
+}
+
 @media (max-width: 950px) {
   .relay-shell {
     grid-template-columns: minmax(0, 1fr);
@@ -727,6 +1020,45 @@ textarea.field {
   .relay-page,
   .relay-form-page {
     padding: 22px 14px;
+  }
+
+  .relay-board-head {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 20px 14px 14px;
+  }
+
+  .relay-board-actions {
+    width: 100%;
+    overflow: auto;
+  }
+
+  .relay-board-actions .button {
+    flex: 0 0 auto;
+  }
+
+  .relay-board-filters {
+    overflow: auto;
+    padding: 9px 14px;
+  }
+
+  .relay-search {
+    min-width: 170px;
+  }
+
+  .relay-column {
+    width: min(270px, 82vw);
+    flex-basis: min(270px, 82vw);
+  }
+
+  .relay-file-field {
+    grid-template-columns: 1fr;
+  }
+
+  .relay-file-field input {
+    grid-row: auto;
+    grid-column: 1;
+    max-width: 100%;
   }
 
   .relay-page-head {

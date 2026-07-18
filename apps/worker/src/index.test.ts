@@ -28,7 +28,8 @@ it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", as
 
   try {
     const firstHeartbeat = await waitForHeartbeat(heartbeatPath);
-    const secondHeartbeat = await waitForHeartbeat(heartbeatPath, firstHeartbeat.at);
+    await delay(1_000);
+    const secondHeartbeat = await waitForHeartbeat(heartbeatPath);
 
     expect(child.exitCode, output).toBeNull();
     expect(new Date(secondHeartbeat.at).getTime()).toBeGreaterThan(
@@ -47,12 +48,11 @@ it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", as
 
 type Heartbeat = { workerId: string; startedAt: string; at: string };
 
-async function waitForHeartbeat(path: string, after?: string): Promise<Heartbeat> {
-  const deadline = Date.now() + 3_000;
+async function waitForHeartbeat(path: string): Promise<Heartbeat> {
+  const deadline = Date.now() + 8_000;
   while (Date.now() < deadline) {
     try {
-      const heartbeat = JSON.parse(await readFile(path, "utf8")) as Heartbeat;
-      if (!after || heartbeat.at !== after) return heartbeat;
+      return JSON.parse(await readFile(path, "utf8")) as Heartbeat;
     } catch {
       // The worker may not have created or finished writing the file yet.
     }

@@ -3,9 +3,15 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 
-export function AuthForm({ mode }: { mode: "setup" | "login" }) {
+export function AuthForm({
+  mode,
+  initialError,
+}: {
+  mode: "setup" | "login";
+  initialError?: string | undefined;
+}) {
   const router = useRouter();
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | undefined>(initialError);
   const [pending, setPending] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -29,7 +35,7 @@ export function AuthForm({ mode }: { mode: "setup" | "login" }) {
   }
 
   return (
-    <form onSubmit={submit} className="mt-7 space-y-4">
+    <form action={`/api/auth/${mode}`} method="post" onSubmit={submit} className="mt-7 space-y-4">
       <div>
         <label className="label" htmlFor="password">
           Owner password

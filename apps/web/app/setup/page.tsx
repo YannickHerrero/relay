@@ -2,11 +2,17 @@ import { redirect } from "next/navigation";
 
 import { AuthForm } from "@/components/auth-form";
 import { hasOwner } from "@/server/auth";
+import { authErrorMessage } from "@/server/auth-request";
 
 export const dynamic = "force-dynamic";
 
-export default async function SetupPage() {
+export default async function SetupPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string | string[] }>;
+}) {
   if (await hasOwner()) redirect("/login");
+  const error = authErrorMessage((await searchParams).error);
   return (
     <main className="grid min-h-screen place-items-center p-5">
       <section className="surface w-full max-w-md p-7 sm:p-9">
@@ -17,7 +23,7 @@ export default async function SetupPage() {
         <p className="mt-3 text-sm text-[var(--relay-muted)]">
           Create the single owner account before exposing Relay through Tailscale.
         </p>
-        <AuthForm mode="setup" />
+        <AuthForm mode="setup" initialError={error} />
       </section>
     </main>
   );

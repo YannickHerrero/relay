@@ -3,14 +3,35 @@ import { expect, test, type Page } from "@playwright/test";
 const ownerPassword = "1234";
 
 test.describe.serial("Relay owner workflow", () => {
-  test("secures the first-run application", async ({ page }) => {
-    await page.goto("/");
-    await expect(page).toHaveURL(/\/setup$/);
-    await expect(page.getByRole("heading", { name: /Secure Relay/ })).toBeVisible();
-    await page.getByLabel("Owner password").fill(ownerPassword);
-    await page.getByRole("button", { name: "Create owner account" }).click();
-    await expect(page).toHaveURL(/\/board$/);
-    await expect(page.getByRole("heading", { name: "Workboard" })).toBeVisible();
+  test("secures the first-run application without client JavaScript", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    try {
+      await page.goto("/");
+      await expect(page).toHaveURL(/\/setup$/);
+      await expect(page.getByRole("heading", { name: /Secure Relay/ })).toBeVisible();
+      await page.getByLabel("Owner password").fill(ownerPassword);
+      await page.getByRole("button", { name: "Create owner account" }).click();
+      await expect(page).toHaveURL(/\/board$/);
+      expect(page.url()).not.toContain("password=");
+      await expect(page.getByRole("heading", { name: "Workboard" })).toBeVisible();
+    } finally {
+      await context.close();
+    }
+  });
+
+  test("signs in without client JavaScript", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Owner password").fill(ownerPassword);
+      await page.getByRole("button", { name: "Sign in to Relay" }).click();
+      await expect(page).toHaveURL(/\/board$/);
+      expect(page.url()).not.toContain("password=");
+    } finally {
+      await context.close();
+    }
   });
 
   test("registers a trusted Git project", async ({ page }) => {

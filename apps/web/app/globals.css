@@ -1705,6 +1705,208 @@ textarea.field {
   font: 9px var(--relay-font-mono);
 }
 
+.relay-deploy-actions {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.relay-recipe-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
+  gap: 10px;
+}
+
+.relay-recipe-cards article {
+  padding: 14px;
+}
+
+.relay-recipe-cards article > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--relay-muted);
+}
+
+.relay-recipe-cards h3,
+.relay-deployment-run h3 {
+  margin: 10px 0 4px;
+  font-size: 12px;
+}
+
+.relay-recipe-cards p {
+  min-height: 34px;
+  margin: 0 0 12px;
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-empty-recipe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--relay-border);
+  border-radius: var(--relay-radius-md);
+  color: var(--relay-muted);
+  padding: 14px;
+  font-size: 11px;
+}
+
+.relay-deployment-run {
+  padding: 14px;
+}
+
+.relay-deployment-run > header {
+  display: flex;
+  justify-content: space-between;
+}
+
+.relay-deployment-run > header code {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-deployment-steps {
+  margin-top: 10px;
+}
+
+.relay-deployment-steps > div {
+  display: grid;
+  grid-template-columns: 18px 1fr auto;
+  align-items: center;
+  gap: 7px;
+  border-top: 1px solid var(--relay-border);
+  padding: 8px 0;
+  font-size: 10px;
+}
+
+.relay-deployment-steps i {
+  display: grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  border: 1px solid var(--relay-border-strong);
+  border-radius: 50%;
+  color: white;
+  font-style: normal;
+}
+
+.relay-deployment-steps i.step-succeeded {
+  border-color: var(--relay-accent);
+  background: var(--relay-accent);
+}
+
+.relay-deployment-steps i.step-failed {
+  border-color: var(--relay-danger);
+  background: var(--relay-danger);
+}
+
+.relay-deployment-steps small {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-deployment-diagnosis {
+  margin-top: 10px;
+  border-left: 2px solid var(--relay-danger);
+  background: var(--relay-danger-soft);
+  padding: 9px;
+  font-size: 10px;
+}
+
+.relay-deployment-diagnosis p {
+  margin: 3px 0 0;
+}
+
+.relay-deployment-run footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 11px;
+}
+
+.relay-deploy-error {
+  color: var(--relay-danger);
+  font-size: 10px;
+}
+
+.relay-confirm-card {
+  width: min(620px, 100%);
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-lg);
+  background: var(--relay-bg);
+  box-shadow: var(--relay-shadow-panel);
+  padding: 20px;
+}
+
+.relay-confirm-card header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.relay-confirm-card h2 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.relay-confirm-card header button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.relay-confirm-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 18px 0 10px;
+}
+
+.relay-confirm-card dl > div {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 8px;
+}
+
+.relay-confirm-card dt {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+  text-transform: uppercase;
+}
+
+.relay-confirm-card dd {
+  overflow: hidden;
+  margin: 0;
+  font-size: 10px;
+  text-overflow: ellipsis;
+}
+
+.relay-confirm-commands {
+  display: grid;
+  gap: 5px;
+  border-radius: var(--relay-radius-sm);
+  background: var(--relay-fg);
+  color: white;
+  padding: 10px;
+}
+
+.relay-confirm-commands code {
+  overflow: auto;
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-confirm-card > p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--relay-danger);
+  font-size: 10px;
+}
+
 .relay-deployment-row > div {
   display: grid;
   gap: 2px;

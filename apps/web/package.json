@@ -12,6 +12,7 @@
     "@node-rs/argon2": "^2.0.2",
     "@relay/db": "workspace:*",
     "@relay/domain": "workspace:*",
+    "@relay/git": "workspace:*",
     "@relay/project-config": "workspace:*",
     "@tailwindcss/postcss": "^4.0.0",
     "drizzle-orm": "^0.44.7",

@@ -6,10 +6,12 @@ import {
   agentEvents,
   agentRuns,
   artifacts,
+  deploymentSteps,
   deployments,
   messages,
   planComments,
   planVersions,
+  projectConfigVersions,
   projects,
   requirementDrafts,
   specificationVersions,
@@ -21,12 +23,15 @@ import {
 } from "@relay/db";
 import {
   implementationPlanSchema,
+  projectConfigSchema,
   refinedRequirementSchema,
+  type DeploymentRecipe,
   type RefinedRequirement,
 } from "@relay/domain";
 import { asc, desc, eq } from "drizzle-orm";
 
 import { ConversationComposer } from "@/components/conversation-composer";
+import { DeploymentActions } from "@/components/deployment-actions";
 import { ImplementationControls } from "@/components/implementation-controls";
 import { PlanFeedback } from "@/components/plan-feedback";
 import { ReviewActions } from "@/components/review-actions";
@@ -53,6 +58,7 @@ type Tab = (typeof tabs)[number][0];
 type MessageRow = typeof messages.$inferSelect;
 type ArtifactRow = typeof artifacts.$inferSelect;
 type DeploymentRow = typeof deployments.$inferSelect;
+type DeploymentStepRow = typeof deploymentSteps.$inferSelect;
 
 export default async function TaskDetailPage({
   params,
@@ -142,6 +148,20 @@ export default async function TaskDetailPage({
     .where(eq(deployments.taskId, taskId))
     .orderBy(desc(deployments.createdAt))
     .all();
+  const deploymentIds = new Set(taskDeployments.map((deployment) => deployment.id));
+  const taskDeploymentSteps = db
+    .select()
+    .from(deploymentSteps)
+    .orderBy(asc(deploymentSteps.order))
+    .all()
+    .filter((step) => deploymentIds.has(step.deploymentId));
+  const projectConfigRow = db
+    .select()
+    .from(projectConfigVersions)
+    .where(eq(projectConfigVersions.projectId, row.project.id))
+    .orderBy(desc(projectConfigVersions.version))
+    .get();
+  const projectConfig = projectConfigSchema.safeParse(projectConfigRow?.content);
   const attachments = db
     .select()
     .from(taskAttachments)
@@ -244,7 +264,13 @@ export default async function TaskDetailPage({
             <TestEvidence tests={tests} artifacts={taskArtifacts} attachments={attachments} />
           ) : null}
           {tab === "deployment" ? (
-            <DeploymentEvidence deployments={taskDeployments} stage={row.task.stage} />
+            <DeploymentEvidence
+              taskId={taskId}
+              deployments={taskDeployments}
+              steps={taskDeploymentSteps}
+              recipes={projectConfig.success ? projectConfig.data.deploymentRecipes : []}
+              stage={row.task.stage}
+            />
           ) : null}
           {tab === "history" ? <History events={history} /> : null}
         </main>
@@ -692,10 +718,16 @@ function TestEvidence({
 }
 
 function DeploymentEvidence({
+  taskId,
   deployments,
+  steps,
+  recipes,
   stage,
 }: {
+  taskId: string;
   deployments: DeploymentRow[];
+  steps: DeploymentStepRow[];
+  recipes: DeploymentRecipe[];
   stage: string;
 }) {
   return (
@@ -704,26 +736,20 @@ function DeploymentEvidence({
       <h2>
         {stage === "ready_to_deploy"
           ? "Choose an explicit delivery action"
-          : "No deployment is armed"}
+          : stage === "done"
+            ? "Delivery completed"
+            : "Deployment progress"}
       </h2>
       <p className="relay-lead">
         Relay snapshots the exact SHA and requires confirmation before running any recipe.
       </p>
-      {deployments.map((deployment) => (
-        <article className="relay-deployment-row" key={deployment.id}>
-          <span
-            className={`relay-runtime runtime-${deployment.status === "failed" ? "failed" : deployment.status === "running" ? "agent_running" : "idle"}`}
-          >
-            <i />
-            {deployment.status}
-          </span>
-          <div>
-            <strong>{deployment.recipeId}</strong>
-            <code>{deployment.commitSha.slice(0, 10)}</code>
-          </div>
-          {deployment.resultUrl ? <a href={deployment.resultUrl}>Open result</a> : null}
-        </article>
-      ))}
+      <DeploymentActions
+        taskId={taskId}
+        stage={stage}
+        recipes={recipes}
+        deployments={deployments}
+        steps={steps}
+      />
     </div>
   );
 }

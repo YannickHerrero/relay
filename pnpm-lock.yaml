@@ -40,6 +40,9 @@ importers:
       "@relay/domain":
         specifier: workspace:*
         version: link:../../packages/domain
+      "@relay/git":
+        specifier: workspace:*
+        version: link:../../packages/git
       "@relay/project-config":
         specifier: workspace:*
         version: link:../../packages/project-config

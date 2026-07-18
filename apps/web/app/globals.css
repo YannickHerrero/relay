@@ -240,6 +240,136 @@ textarea.field {
   background: var(--relay-accent);
 }
 
+.relay-notification-center {
+  position: relative;
+}
+
+.relay-notification-button {
+  position: relative;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-sm);
+  background: var(--relay-surface);
+}
+
+.relay-notification-button > span {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  place-items: center;
+  border: 2px solid var(--relay-bg);
+  border-radius: 99px;
+  background: var(--relay-danger);
+  color: white;
+  font: 8px var(--relay-font-mono);
+}
+
+.relay-notification-popover {
+  position: absolute;
+  z-index: 80;
+  top: 38px;
+  right: 0;
+  width: min(370px, calc(100vw - 24px));
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-lg);
+  background: var(--relay-surface);
+  box-shadow: var(--relay-shadow-panel);
+}
+
+.relay-notification-popover > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 13px;
+}
+
+.relay-notification-popover h2 {
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+.relay-notification-popover header button {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.relay-notification-tools {
+  display: flex;
+  justify-content: space-between;
+  border-block: 1px solid var(--relay-border);
+  padding: 7px 12px;
+}
+
+.relay-notification-tools button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--relay-muted);
+  font-size: 9px;
+}
+
+.relay-notification-list {
+  overflow: auto;
+  max-height: 430px;
+}
+
+.relay-notification-list > a {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: 8px;
+  border-bottom: 1px solid var(--relay-border);
+  color: inherit;
+  padding: 10px 12px;
+  text-decoration: none;
+}
+
+.relay-notification-list > a > i {
+  width: 6px;
+  height: 6px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--relay-border-strong);
+}
+
+.relay-notification-list > a.unread > i {
+  background: var(--relay-accent);
+}
+
+.relay-notification-list strong {
+  font-size: 10px;
+}
+
+.relay-notification-list p {
+  margin: 2px 0;
+  color: var(--relay-muted);
+  font-size: 9px;
+}
+
+.relay-notification-list time {
+  color: var(--relay-muted);
+  font: 8px var(--relay-font-mono);
+}
+
+.relay-notification-list > p {
+  margin: 0;
+  color: var(--relay-muted);
+  padding: 24px;
+  text-align: center;
+  font-size: 10px;
+}
+
 .relay-avatar {
   display: grid;
   width: 28px;
@@ -956,6 +1086,131 @@ textarea.field {
   font: 10px var(--relay-font-mono);
 }
 
+.relay-global-feed {
+  display: grid;
+  gap: 7px;
+}
+
+.relay-global-feed > a {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  align-items: center;
+  gap: 9px;
+  color: inherit;
+  padding: 11px 13px;
+  text-decoration: none;
+}
+
+.relay-global-feed > a > i {
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--relay-accent);
+  border-radius: 50%;
+}
+
+.relay-global-feed strong {
+  font-size: 10px;
+  text-transform: capitalize;
+}
+
+.relay-global-feed p {
+  margin: 2px 0;
+  font-size: 11px;
+}
+
+.relay-global-feed small {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-table {
+  overflow: auto;
+}
+
+.relay-table > div {
+  display: grid;
+  min-width: 700px;
+  grid-template-columns: 120px 170px minmax(240px, 1fr) 180px 30px;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--relay-border);
+  padding: 10px 13px;
+  font-size: 10px;
+}
+
+.relay-table > div:last-child {
+  border-bottom: 0;
+}
+
+.relay-table .relay-table-head {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+  text-transform: uppercase;
+}
+
+.relay-table strong,
+.relay-table small {
+  display: block;
+}
+
+.relay-table small {
+  margin-top: 2px;
+  color: var(--relay-muted);
+  font-size: 9px;
+}
+
+.relay-table time,
+.relay-table code {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-table a {
+  color: var(--relay-muted);
+}
+
+.relay-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(290px, 100%), 1fr));
+  gap: 10px;
+}
+
+.relay-archive-grid > a {
+  color: inherit;
+  padding: 14px;
+  text-decoration: none;
+}
+
+.relay-archive-grid > a > div,
+.relay-archive-grid footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.relay-archive-grid time,
+.relay-archive-grid footer {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-archive-grid h2 {
+  margin: 14px 0 4px;
+  font-size: 13px;
+}
+
+.relay-archive-grid p {
+  margin: 0 0 14px;
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-archive-grid footer {
+  border-top: 1px solid var(--relay-border);
+  padding-top: 9px;
+}
+
 .relay-task-page {
   min-height: calc(100vh - 56px);
 }
@@ -1627,6 +1882,10 @@ textarea.field {
   text-overflow: ellipsis;
 }
 
+.relay-total-diff {
+  margin-top: 10px;
+}
+
 .relay-git-commit {
   display: grid;
   grid-template-columns: 20px 1fr auto;
@@ -1637,6 +1896,10 @@ textarea.field {
 
 .relay-git-commit strong {
   font-size: 11px;
+}
+
+.relay-git-commit > a {
+  color: inherit;
 }
 
 .relay-git-commit p {
@@ -1692,12 +1955,14 @@ textarea.field {
   gap: 5px;
 }
 
-.relay-artifacts > div {
+.relay-artifacts > a {
   display: flex;
   justify-content: space-between;
   border-top: 1px solid var(--relay-border);
+  color: inherit;
   padding: 8px 0;
   font-size: 10px;
+  text-decoration: none;
 }
 
 .relay-artifacts small {

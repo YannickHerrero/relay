@@ -17,8 +17,8 @@ test-results/
 *.db
 *.db-shm
 *.db-wal
-artifacts/
-worktrees/
+/artifacts/
+/worktrees/
 
 # Local configuration
 .env

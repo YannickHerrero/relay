@@ -1,28 +1,31 @@
 import { NextResponse } from "next/server";
 
 import { currentUser } from "@/server/auth";
-import { createTask, taskInputSchema } from "@/server/tasks";
+import { formRedirect } from "@/server/form-request";
 import { assertMutationOrigin } from "@/server/security";
+import { rememberTaskProject } from "@/server/task-preferences";
+import { createTaskFromRequest, taskRequestSchema } from "@/server/tasks";
 
 export async function POST(request: Request) {
   if (!(await currentUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const wantsJson = request.headers.get("accept")?.includes("application/json") ?? false;
   try {
     assertMutationOrigin(request);
     const form = await request.formData();
-    const input = taskInputSchema.parse({
+    const input = taskRequestSchema.parse({
       projectId: form.get("projectId"),
-      title: form.get("title"),
-      initialRequest: form.get("initialRequest"),
-      type: form.get("type"),
-      priority: form.get("priority"),
-      baseBranch: form.get("baseBranch"),
+      request: form.get("request"),
     });
     const files = form
       .getAll("attachments")
       .filter((item): item is File => item instanceof File && item.size > 0);
-    const id = await createTask(input, files);
-    return NextResponse.json({ id }, { status: 201 });
+    const id = await createTaskFromRequest(input, files);
+    await rememberTaskProject(input.projectId);
+    return wantsJson
+      ? NextResponse.json({ id }, { status: 201 })
+      : formRedirect(`/tasks/${id}?tab=conversation`);
   } catch (error) {
+    if (!wantsJson) return formRedirect("/tasks/new?error=create-failed");
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to create task" },
       { status: 400 },

@@ -10,6 +10,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 const repositoryRoot = resolve(import.meta.dirname, "..");
 const serviceScript = join(repositoryRoot, "scripts", "relay-service.sh");
 const controlScript = join(repositoryRoot, "scripts", "relay-control.sh");
+const statusScript = join(repositoryRoot, "scripts", "relay-status.mjs");
 const temporaryDirectories: string[] = [];
 
 afterEach(() => {
@@ -67,6 +68,42 @@ describe("Relay LaunchAgent service", () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain("Refusing to replace an unrelated LaunchAgent");
     expect(existsSync(fixture.statePath)).toBe(false);
+  });
+});
+
+describe("Relay status", () => {
+  test("requires a fresh heartbeat from a live worker process", () => {
+    const directory = temporaryDirectory();
+    const dataDirectory = join(directory, "data");
+    mkdirSync(dataDirectory, { recursive: true });
+    const tailscale = executable(
+      directory,
+      "tailscale-status",
+      '#!/bin/bash\nprintf \'%s\' \'{"state":"inactive","origin":"https://relay.test","target":"http://127.0.0.1:65530"}\'\n',
+    );
+    const environment = {
+      ...process.env,
+      PORT: "65530",
+      RELAY_DATA_DIR: dataDirectory,
+      RELAY_LAUNCH_AGENTS_DIR: join(directory, "LaunchAgents"),
+      RELAY_LAUNCHCTL_COMMAND: "/usr/bin/false",
+      RELAY_TAILSCALE_STATUS_COMMAND: tailscale,
+    };
+    const heartbeatPath = join(dataDirectory, "worker-heartbeat.json");
+
+    writeFileSync(
+      heartbeatPath,
+      JSON.stringify({ workerId: `test:${process.pid}`, at: new Date().toISOString() }),
+    );
+    const live = run(process.execPath, [statusScript, "--json"], environment);
+    expect(JSON.parse(live.stdout).worker.online).toBe(true);
+
+    writeFileSync(
+      heartbeatPath,
+      JSON.stringify({ workerId: "test:999999", at: new Date().toISOString() }),
+    );
+    const exited = run(process.execPath, [statusScript, "--json"], environment);
+    expect(JSON.parse(exited.stdout).worker.online).toBe(false);
   });
 });
 

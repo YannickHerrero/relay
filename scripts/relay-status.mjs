@@ -9,7 +9,9 @@ import { Socket } from "node:net";
 
 const rootDirectory = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const serviceCommand = join(rootDirectory, "scripts", "relay-service.sh");
-const tailscaleCommand = join(rootDirectory, "scripts", "relay-tailscale.sh");
+const tailscaleCommand =
+  process.env.RELAY_TAILSCALE_STATUS_COMMAND ??
+  join(rootDirectory, "scripts", "relay-tailscale.sh");
 const dataDirectory = resolveHome(process.env.RELAY_DATA_DIR?.trim() || "~/.relay");
 const port = Number.parseInt(process.env.PORT ?? "43127", 10);
 const jsonOutput = process.argv.includes("--json");
@@ -85,8 +87,18 @@ function readWorkerStatus(path) {
     const heartbeat = JSON.parse(readFileSync(path, "utf8"));
     const heartbeatTime = new Date(heartbeat.at).getTime();
     const ageMs = Date.now() - heartbeatTime;
+    const workerPid = Number.parseInt(String(heartbeat.workerId).split(":").at(-1) ?? "", 10);
+    let processAlive = false;
+    if (Number.isInteger(workerPid) && workerPid > 0) {
+      try {
+        process.kill(workerPid, 0);
+        processAlive = true;
+      } catch {
+        // A fresh heartbeat from an exited process must not keep the worker online.
+      }
+    }
     return {
-      online: Number.isFinite(ageMs) && ageMs >= 0 && ageMs < 15_000,
+      online: processAlive && Number.isFinite(ageMs) && ageMs >= 0 && ageMs < 15_000,
       ageMs: Number.isFinite(ageMs) ? ageMs : null,
       agentReady: typeof heartbeat.agentReady === "boolean" ? heartbeat.agentReady : null,
       agentStatus: typeof heartbeat.agentStatus === "string" ? heartbeat.agentStatus : null,

@@ -48,7 +48,7 @@ import {
 import { createTaskWorktree, GitRepository, taskBranchName } from "@relay/git";
 import { runCommand } from "@relay/process";
 import { loadProjectConfig } from "@relay/project-config";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import type { OrchestrationJob } from "./queue";
 
@@ -678,10 +678,23 @@ export class WorkflowEngine {
       commands,
       "manual-rerun",
     );
+    const readyForReview = db
+      .select({ id: taskEvents.id })
+      .from(taskEvents)
+      .where(
+        and(
+          eq(taskEvents.taskId, taskId),
+          inArray(taskEvents.type, [
+            "implementation.ready_for_review",
+            "review.changes_ready_for_review",
+          ]),
+        ),
+      )
+      .get();
     const now = new Date().toISOString();
     db.update(tasks)
       .set({
-        runtimeStatus: passed ? "idle" : "blocked",
+        runtimeStatus: passed && readyForReview ? "waiting_for_user" : passed ? "idle" : "blocked",
         blockedReason: passed ? null : "Manual test rerun failed",
         updatedAt: now,
         lastActivityAt: now,

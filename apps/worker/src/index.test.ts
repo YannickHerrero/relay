@@ -9,7 +9,7 @@ import { expect, it } from "vitest";
 it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", async () => {
   const dataDir = await mkdtemp(join(tmpdir(), "relay-worker-liveness-"));
   const heartbeatPath = join(dataDir, "worker-heartbeat.json");
-  const tsxPath = join(process.cwd(), "node_modules", ".bin", "tsx");
+  const tsxPath = join(process.cwd(), "apps", "worker", "node_modules", ".bin", "tsx");
   const workerPath = join(process.cwd(), "apps", "worker", "src", "index.ts");
   const child = spawn(tsxPath, [workerPath], {
     cwd: process.cwd(),

@@ -1,0 +1,32 @@
+# Relay local design references and specifications
+DO-NOT-COMMIT/
+Do Not Commit/
+do not commit/
+
+# Dependencies and build output
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.tsbuildinfo
+
+# Runtime data
+.relay-data/
+*.db
+*.db-shm
+*.db-wal
+artifacts/
+worktrees/
+
+# Local configuration
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/

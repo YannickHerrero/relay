@@ -554,7 +554,7 @@ textarea.field {
 .relay-project-card {
   position: relative;
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: start;
   gap: 10px;
   color: inherit;
@@ -577,6 +577,10 @@ textarea.field {
   place-items: center;
   border-radius: var(--relay-radius-sm);
   background: var(--relay-bg);
+}
+
+.relay-project-card > div {
+  min-width: 0;
 }
 
 .relay-project-card h2 {

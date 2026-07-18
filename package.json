@@ -17,10 +17,12 @@
     "start": "pnpm --parallel --filter @relay/web --filter @relay/worker run start",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.7.0",
     "prettier": "^3.9.5",

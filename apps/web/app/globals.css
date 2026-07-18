@@ -2465,9 +2465,23 @@ textarea.field {
     max-width: 100%;
   }
 
-  .relay-page-head {
+  .relay-page-head,
+  .relay-discovery-head {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .relay-discovery-head,
+  .relay-section-actions {
+    width: 100%;
+  }
+
+  .relay-section-actions {
+    justify-content: space-between;
+  }
+
+  .relay-project-root {
+    max-width: 100%;
   }
 
   .relay-form-grid,

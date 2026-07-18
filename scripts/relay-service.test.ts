@@ -40,6 +40,20 @@ describe("Relay LaunchAgent service", () => {
     expect(existsSync(fixture.statePath)).toBe(false);
   });
 
+  test("waits for launchd to finish an asynchronous bootout", () => {
+    const fixture = serviceFixture();
+    run(serviceScript, ["start"], fixture.environment);
+
+    const stopped = run(serviceScript, ["stop"], {
+      ...fixture.environment,
+      BOOTOUT_DELAY: "0.2",
+    });
+
+    expect(stopped.status).toBe(0);
+    expect(stopped.stdout).toContain("stopped");
+    expect(existsSync(fixture.statePath)).toBe(false);
+  });
+
   test("refuses an unrelated LaunchAgent definition", () => {
     const fixture = serviceFixture();
     mkdirSync(dirname(fixture.plistPath), { recursive: true });
@@ -144,7 +158,13 @@ echo "$*" >>"$CALLS_PATH"
 case "$1" in
   print) test -f "$STATE_PATH";;
   bootstrap) touch "$STATE_PATH";;
-  bootout) rm -f "$STATE_PATH";;
+  bootout)
+    if [[ -n "\${BOOTOUT_DELAY:-}" ]]; then
+      (sleep "$BOOTOUT_DELAY"; rm -f "$STATE_PATH") &
+    else
+      rm -f "$STATE_PATH"
+    fi
+    ;;
   *) exit 1;;
 esac
 `,

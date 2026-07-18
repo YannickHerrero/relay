@@ -127,7 +127,15 @@ case "${1:-}" in
       exit 1
     fi
     "$launchctl_command" bootout "$domain/$label"
-    printf 'Relay LaunchAgent stopped.\n'
+    for _ in {1..50}; do
+      if ! service_is_loaded; then
+        printf 'Relay LaunchAgent stopped.\n'
+        exit 0
+      fi
+      sleep 0.1
+    done
+    printf 'Relay LaunchAgent is still loaded after shutdown.\n' >&2
+    exit 1
     ;;
   status)
     if service_is_loaded; then

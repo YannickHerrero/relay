@@ -11,11 +11,11 @@ The browser never connects to Codex. The path is always browser â†’ Relay API â†
 
 ## Durable work
 
-`orchestration_jobs` records every background action with an idempotency key, attempt count, lease owner, and lease expiration. A worker reclaims expired work after a crash. A separate task lock prevents two jobs from mutating the same task concurrently.
+`orchestration_jobs` records every background action with an idempotency key, attempt count, lease owner, and lease expiration. A worker reclaims expired work after a crash. A separate task lock prevents two jobs from mutating the same task concurrently. Task creation also stores a browser-generated submission key, so repeating the same form submission returns the existing task instead of creating duplicate work.
 
 Worker startup does not reset repositories. Before continuing implementation, Relay reconciles the approved plan, current commit number, worktree status, and Git HEAD. Ambiguous or invalid states become blocked for human inspection.
 
-The worker writes `worker-heartbeat.json` every five seconds. The web process treats a heartbeat older than fifteen seconds as offline.
+The worker writes `worker-heartbeat.json` every five seconds and periodically records Codex authentication readiness. The web process treats a heartbeat older than fifteen seconds as offline and blocks task creation when the worker reports that Codex login is required.
 
 ## State machine
 
@@ -65,4 +65,4 @@ artifacts/<task-id>/...
 worktrees/<project-id>/<task-id>/...
 ```
 
-Artifact and attachment downloads require authentication and reject paths outside the Relay data directory.
+Artifact and attachment downloads require authentication and reject paths outside the Relay data directory. Confirmed deletion is allowed only without active work; it removes the task's cascading database history, uploads, artifacts, and registered worktree while intentionally leaving the source repository and task branch intact.

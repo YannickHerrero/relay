@@ -34,5 +34,7 @@ Relay uses a single-owner password with Argon2id hashing, random hashed sessions
 - Deployment commands are trusted only after a separate explicit confirmation.
 - Codex is local and never exposed directly over Tailscale.
 - A deployment diagnostician receives logs in read-only mode and cannot rerun a command.
+- Generic task recovery cannot retry deployment jobs; deployment retries continue to require the dedicated confirmation path bound to the exact SHA and recipe.
+- Task deletion rejects active work and preserves both the registered source repository and task branch.
 
 Review project configuration, plan commands, changed files, Git evidence, and the exact deployment confirmation before approving sensitive work.

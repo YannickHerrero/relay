@@ -29,6 +29,7 @@ export function HostStatus({ compact = false }: { compact?: boolean }) {
     );
   return (
     <>
+      <span className={`relay-status-dot ${health?.online ? "" : "offline"}`} />
       <strong>Relay host</strong>
       <small>{health?.online ? `online · ${health.queuedJobs} queued` : "worker offline"}</small>
     </>

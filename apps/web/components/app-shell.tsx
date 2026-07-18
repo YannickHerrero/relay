@@ -100,7 +100,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="relay-host-block">
           <p className="relay-side-label">Connected host</p>
           <div className="relay-host-card">
-            <span className="relay-status-dot" />
             <HostStatus />
           </div>
         </div>

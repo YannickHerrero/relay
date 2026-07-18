@@ -102,9 +102,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="relay-side-label">Connected host</p>
           <div className="relay-host-card">
             <span className="relay-status-dot" />
-            <strong>
-              {typeof window === "undefined" ? "Relay host" : window.location.hostname}
-            </strong>
+            <strong>Relay host</strong>
             <small>online · worker observed</small>
           </div>
         </div>

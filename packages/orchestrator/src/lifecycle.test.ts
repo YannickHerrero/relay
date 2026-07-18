@@ -260,13 +260,20 @@ describe("complete Relay lifecycle", () => {
       attempts: 1,
       maxAttempts: 1,
     });
-    expect(database.db.select().from(tasks).where(eq(tasks.id, taskId)).get()?.stage).toBe(
-      "review",
-    );
+    expect(database.db.select().from(tasks).where(eq(tasks.id, taskId)).get()).toMatchObject({
+      stage: "implementation",
+      runtimeStatus: "waiting_for_user",
+    });
     expect(
       database.db.select().from(taskCommits).where(eq(taskCommits.taskId, taskId)).all(),
     ).toHaveLength(2);
 
+    assertTransition("implementation", "review", "user");
+    database.db
+      .update(tasks)
+      .set({ stage: "review", runtimeStatus: "waiting_for_user" })
+      .where(eq(tasks.id, taskId))
+      .run();
     assertTransition("review", "implementation", "user");
     const reviewId = randomUUID();
     database.db
@@ -296,10 +303,17 @@ describe("complete Relay lifecycle", () => {
       attempts: 1,
       maxAttempts: 1,
     });
-    expect(database.db.select().from(tasks).where(eq(tasks.id, taskId)).get()?.stage).toBe(
-      "review",
-    );
+    expect(database.db.select().from(tasks).where(eq(tasks.id, taskId)).get()).toMatchObject({
+      stage: "implementation",
+      runtimeStatus: "waiting_for_user",
+    });
 
+    assertTransition("implementation", "review", "user");
+    database.db
+      .update(tasks)
+      .set({ stage: "review", runtimeStatus: "waiting_for_user" })
+      .where(eq(tasks.id, taskId))
+      .run();
     assertTransition("review", "ready_to_deploy", "user");
     database.db
       .update(tasks)

@@ -9,6 +9,7 @@ import { z } from "zod";
 import { currentUser } from "@/server/auth";
 import { database } from "@/server/database";
 import { assertMutationOrigin } from "@/server/security";
+import { visitPhase } from "@/server/task-transitions";
 
 const bodySchema = z.object({
   comments: z
@@ -29,7 +30,8 @@ export async function POST(request: Request, context: { params: Promise<{ taskId
     assertMutationOrigin(request);
     const { taskId } = await context.params;
     const input = bodySchema.parse(await request.json());
-    const { db, sqlite } = database();
+    const relayDatabase = database();
+    const { db, sqlite } = relayDatabase;
     const task = db.select().from(tasks).where(eq(tasks.id, taskId)).get();
     if (!task || task.stage !== "review") throw new Error("Task is not awaiting review");
     assertTransition("review", "implementation", "user");
@@ -68,6 +70,7 @@ export async function POST(request: Request, context: { params: Promise<{ taskId
         })
         .where(eq(tasks.id, taskId))
         .run();
+      visitPhase(relayDatabase, taskId, "build", now);
       db.insert(taskEvents)
         .values({
           taskId,

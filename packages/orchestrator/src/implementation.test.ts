@@ -174,7 +174,10 @@ describe("implementation workflow", () => {
     });
 
     const completed = database.db.select().from(tasks).where(eq(tasks.id, taskId)).get();
-    expect(completed?.stage).toBe("review");
+    expect(completed).toMatchObject({
+      stage: "implementation",
+      runtimeStatus: "waiting_for_user",
+    });
     expect(
       database.db.select().from(taskCommits).where(eq(taskCommits.taskId, taskId)).all(),
     ).toHaveLength(2);

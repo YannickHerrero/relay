@@ -7,6 +7,7 @@ import { z } from "zod";
 import { currentUser } from "@/server/auth";
 import { database } from "@/server/database";
 import { assertMutationOrigin } from "@/server/security";
+import { visitPhase } from "@/server/task-transitions";
 
 const bodySchema = z.object({ action: z.enum(["cancel", "return_to_implementation"]) });
 
@@ -19,7 +20,8 @@ export async function POST(
     assertMutationOrigin(request);
     const input = bodySchema.parse(await request.json());
     const { taskId, deploymentId } = await context.params;
-    const { db, sqlite } = database();
+    const relayDatabase = database();
+    const { db, sqlite } = relayDatabase;
     const task = db
       .select()
       .from(tasks)
@@ -51,6 +53,7 @@ export async function POST(
         })
         .where(eq(tasks.id, taskId))
         .run();
+      if (destination === "implementation") visitPhase(relayDatabase, taskId, "build", now);
       db.insert(taskEvents)
         .values({
           taskId,

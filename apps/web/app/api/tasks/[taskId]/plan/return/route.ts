@@ -6,13 +6,15 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/server/auth";
 import { database } from "@/server/database";
 import { assertMutationOrigin } from "@/server/security";
+import { visitPhase } from "@/server/task-transitions";
 
 export async function POST(request: Request, context: { params: Promise<{ taskId: string }> }) {
   if (!(await currentUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     assertMutationOrigin(request);
     const { taskId } = await context.params;
-    const { db, sqlite } = database();
+    const relayDatabase = database();
+    const { db, sqlite } = relayDatabase;
     const task = db.select().from(tasks).where(eq(tasks.id, taskId)).get();
     if (!task || task.stage !== "planning") throw new Error("Task is not in planning");
     assertTransition("planning", "refinement", "user");
@@ -28,6 +30,7 @@ export async function POST(request: Request, context: { params: Promise<{ taskId
         })
         .where(eq(tasks.id, taskId))
         .run();
+      visitPhase(relayDatabase, taskId, "refine", now);
       db.insert(taskEvents)
         .values({
           taskId,

@@ -8,8 +8,9 @@ describe("task state machine", () => {
     expect(canTransition("review", "ready_to_deploy", "user")).toBe(true);
   });
 
-  it("only lets an agent move implementation to review", () => {
-    expect(canTransition("implementation", "review", "agent")).toBe(true);
+  it("requires an owner to move implementation to review", () => {
+    expect(canTransition("implementation", "review", "user")).toBe(true);
+    expect(canTransition("implementation", "review", "agent")).toBe(false);
     expect(canTransition("review", "ready_to_deploy", "agent")).toBe(false);
     expect(() => assertTransition("refinement", "planning", "agent")).toThrow(/requires a user/);
   });

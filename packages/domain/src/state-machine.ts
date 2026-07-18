@@ -12,7 +12,7 @@ export const allowedTransitions: Readonly<Record<TaskStage, readonly TaskStage[]
 
 export type TransitionActor = "user" | "agent" | "system";
 
-const automaticTransitions = new Set(["implementation:review", "deploying:done"]);
+const automaticTransitions = new Set(["deploying:done"]);
 
 export class InvalidTransitionError extends Error {
   constructor(

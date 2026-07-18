@@ -21,6 +21,7 @@ import {
   specificationVersions,
   taskCommits,
   taskEvents,
+  taskPhaseVisits,
   tasks,
   testRuns,
   type RelayDatabase,
@@ -485,12 +486,10 @@ export class WorkflowEngine {
     }
     await worktree.assertClean();
     await this.writeDeliveryArtifacts(taskId, worktree, row.task.baseBranch, plan);
-    assertTransition("implementation", "review", "agent");
     const completedAt = new Date().toISOString();
     sqlite.transaction(() => {
       db.update(tasks)
         .set({
-          stage: "review",
           runtimeStatus: "waiting_for_user",
           blockedReason: null,
           version: row.task.version + 1,
@@ -502,7 +501,7 @@ export class WorkflowEngine {
       db.insert(taskEvents)
         .values({
           taskId,
-          type: "implementation.completed",
+          type: "implementation.ready_for_review",
           actor: "agent",
           payload: { commits: plan.commits.length },
           createdAt: completedAt,
@@ -626,12 +625,10 @@ export class WorkflowEngine {
       this.blockTask(taskId, "Final review-change validation failed.");
       return;
     }
-    assertTransition("implementation", "review", "agent");
     const now = new Date().toISOString();
     sqlite.transaction(() => {
       db.update(tasks)
         .set({
-          stage: "review",
           runtimeStatus: "waiting_for_user",
           blockedReason: null,
           version: task.version + 1,
@@ -643,7 +640,7 @@ export class WorkflowEngine {
       db.insert(taskEvents)
         .values({
           taskId,
-          type: "review.changes_completed",
+          type: "review.changes_ready_for_review",
           actor: "agent",
           payload: {},
           createdAt: now,
@@ -811,6 +808,18 @@ export class WorkflowEngine {
           lastActivityAt: completedAt,
         })
         .where(eq(tasks.id, taskId))
+        .run();
+      db.insert(taskPhaseVisits)
+        .values({
+          taskId,
+          phase: "done",
+          firstStartedAt: completedAt,
+          lastStartedAt: completedAt,
+        })
+        .onConflictDoUpdate({
+          target: [taskPhaseVisits.taskId, taskPhaseVisits.phase],
+          set: { lastStartedAt: completedAt },
+        })
         .run();
       db.insert(taskEvents)
         .values({

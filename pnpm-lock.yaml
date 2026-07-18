@@ -40,6 +40,9 @@ importers:
       "@relay/domain":
         specifier: workspace:*
         version: link:../../packages/domain
+      "@relay/project-config":
+        specifier: workspace:*
+        version: link:../../packages/project-config
       "@tailwindcss/postcss":
         specifier: ^4.0.0
         version: 4.3.3

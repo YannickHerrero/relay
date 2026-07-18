@@ -32,6 +32,7 @@ export async function POST(request: Request, context: { params: Promise<{ taskId
           id: instructionId,
           taskId,
           role: "user",
+          phase: "build",
           content: input.content,
           attachments: [],
           createdAt: now,

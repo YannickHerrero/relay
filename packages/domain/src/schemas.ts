@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const taskPhaseSchema = z.enum(["refine", "plan", "build", "review", "deploy", "done"]);
+
 export const taskStageSchema = z.enum([
   "refinement",
   "planning",
@@ -131,6 +133,7 @@ export const implementationPlanSchema = z.object({
   outOfScope: z.array(z.string()),
 });
 
+export type TaskPhase = z.infer<typeof taskPhaseSchema>;
 export type TaskStage = z.infer<typeof taskStageSchema>;
 export type TaskRuntimeStatus = z.infer<typeof taskRuntimeStatusSchema>;
 export type TaskType = z.infer<typeof taskTypeSchema>;

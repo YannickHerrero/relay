@@ -114,6 +114,43 @@ ALTER TABLE tasks ADD COLUMN creation_key TEXT;
 CREATE UNIQUE INDEX tasks_creation_key_idx ON tasks(creation_key);
 `,
   },
+  {
+    id: 6,
+    name: "task-phase-history",
+    sql: `
+ALTER TABLE messages ADD COLUMN phase TEXT NOT NULL DEFAULT 'refine';
+CREATE TABLE task_phase_visits (
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  phase TEXT NOT NULL,
+  first_started_at TEXT NOT NULL,
+  last_started_at TEXT NOT NULL,
+  PRIMARY KEY (task_id, phase)
+);
+INSERT OR IGNORE INTO task_phase_visits SELECT id, 'refine', created_at, created_at FROM tasks;
+INSERT OR IGNORE INTO task_phase_visits
+  SELECT id, 'plan', created_at, updated_at FROM tasks
+  WHERE stage <> 'refinement' OR EXISTS (
+    SELECT 1 FROM specification_versions WHERE specification_versions.task_id = tasks.id AND approved_at IS NOT NULL
+  );
+INSERT OR IGNORE INTO task_phase_visits
+  SELECT id, 'build', created_at, updated_at FROM tasks
+  WHERE stage IN ('implementation', 'review', 'ready_to_deploy', 'deploying', 'done') OR EXISTS (
+    SELECT 1 FROM plan_versions WHERE plan_versions.task_id = tasks.id AND approved_at IS NOT NULL
+  );
+INSERT OR IGNORE INTO task_phase_visits
+  SELECT id, 'review', created_at, updated_at FROM tasks
+  WHERE stage IN ('review', 'ready_to_deploy', 'deploying', 'done') OR EXISTS (
+    SELECT 1 FROM review_requests WHERE review_requests.task_id = tasks.id
+  );
+INSERT OR IGNORE INTO task_phase_visits
+  SELECT id, 'deploy', created_at, updated_at FROM tasks
+  WHERE stage IN ('ready_to_deploy', 'deploying', 'done') OR EXISTS (
+    SELECT 1 FROM deployments WHERE deployments.task_id = tasks.id
+  );
+INSERT OR IGNORE INTO task_phase_visits
+  SELECT id, 'done', created_at, updated_at FROM tasks WHERE stage = 'done';
+`,
+  },
 ] as const;
 
 function migrate(sqlite: BetterSqlite3.Database): void {

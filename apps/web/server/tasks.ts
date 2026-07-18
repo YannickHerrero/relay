@@ -8,6 +8,7 @@ import {
   projects,
   taskAttachments,
   taskEvents,
+  taskPhaseVisits,
   tasks,
 } from "@relay/db";
 import { taskPrioritySchema, taskTypeSchema } from "@relay/domain";
@@ -138,12 +139,16 @@ export async function createTask(input: z.infer<typeof taskInputSchema>, files: 
           updatedAt: now,
         })
         .run();
+      db.insert(taskPhaseVisits)
+        .values({ taskId: id, phase: "refine", firstStartedAt: now, lastStartedAt: now })
+        .run();
       if (attachmentRows.length) db.insert(taskAttachments).values(attachmentRows).run();
       db.insert(messages)
         .values({
           id: randomUUID(),
           taskId: id,
           role: "user",
+          phase: "refine",
           content: values.initialRequest,
           attachments: attachmentRows.map((row) => row.id),
           createdAt: now,

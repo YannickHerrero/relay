@@ -1,4 +1,11 @@
-import { index, integer, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import {
+  index,
+  integer,
+  primaryKey,
+  sqliteTable,
+  text,
+  uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 
 const timestamps = {
   createdAt: text("created_at").notNull(),
@@ -93,6 +100,19 @@ export const tasks = sqliteTable(
   ],
 );
 
+export const taskPhaseVisits = sqliteTable(
+  "task_phase_visits",
+  {
+    taskId: text("task_id")
+      .notNull()
+      .references(() => tasks.id, { onDelete: "cascade" }),
+    phase: text("phase").notNull(),
+    firstStartedAt: text("first_started_at").notNull(),
+    lastStartedAt: text("last_started_at").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.taskId, table.phase] })],
+);
+
 export const taskAttachments = sqliteTable("task_attachments", {
   id: text("id").primaryKey(),
   taskId: text("task_id")
@@ -114,6 +134,7 @@ export const messages = sqliteTable(
       .notNull()
       .references(() => tasks.id, { onDelete: "cascade" }),
     role: text("role").notNull(),
+    phase: text("phase").notNull().default("refine"),
     content: text("content").notNull(),
     attachments: text("attachments", { mode: "json" }).notNull().default([]),
     createdAt: text("created_at").notNull(),

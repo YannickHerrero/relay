@@ -25,7 +25,15 @@ export async function POST(request: Request, context: { params: Promise<{ taskId
     const messageId = randomUUID();
     sqlite.transaction(() => {
       db.insert(messages)
-        .values({ id: messageId, taskId, role: "user", content, attachments: [], createdAt: now })
+        .values({
+          id: messageId,
+          taskId,
+          role: "user",
+          phase: "refine",
+          content,
+          attachments: [],
+          createdAt: now,
+        })
         .run();
       db.update(tasks)
         .set({ runtimeStatus: "agent_running", updatedAt: now, lastActivityAt: now })

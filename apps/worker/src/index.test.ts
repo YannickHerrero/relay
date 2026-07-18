@@ -18,6 +18,7 @@ it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", as
       RELAY_AGENT_ADAPTER: "fake",
       RELAY_DATA_DIR: dataDir,
       RELAY_WORKER_CONCURRENCY: "1",
+      RELAY_WORKER_HEARTBEAT_INTERVAL_MS: "100",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -47,7 +48,7 @@ it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", as
 type Heartbeat = { workerId: string; startedAt: string; at: string };
 
 async function waitForHeartbeat(path: string, after?: string): Promise<Heartbeat> {
-  const deadline = Date.now() + 8_000;
+  const deadline = Date.now() + 3_000;
   while (Date.now() < deadline) {
     try {
       const heartbeat = JSON.parse(await readFile(path, "utf8")) as Heartbeat;

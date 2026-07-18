@@ -10,6 +10,7 @@ import { DurableJobQueue, WorkflowEngine, type OrchestrationJob } from "@relay/o
 const dataDir = resolveDataDir();
 const database = createDatabase(join(dataDir, "relay.db"));
 const workerId = `${hostname()}:${process.pid}`;
+const heartbeatIntervalMs = positiveInteger(process.env.RELAY_WORKER_HEARTBEAT_INTERVAL_MS, 5_000);
 const queue = new DurableJobQueue(database, workerId);
 const agent =
   process.env.RELAY_AGENT_ADAPTER === "fake" ? new FakeAgentAdapter() : new CodexAdapter();
@@ -37,7 +38,7 @@ const heartbeatWriter = setInterval(() => {
   void writeHeartbeat().catch((error: unknown) => {
     console.error("[Relay worker] unable to write heartbeat", error);
   });
-}, 5_000);
+}, heartbeatIntervalMs);
 heartbeatWriter.unref();
 
 const poller = setInterval(() => {
@@ -84,6 +85,11 @@ async function shutdown(signal: string): Promise<void> {
 
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 process.once("SIGINT", () => void shutdown("SIGINT"));
+
+function positiveInteger(value: string | undefined, fallback: number): number {
+  const parsed = Number.parseInt(value ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 function resolveDataDir(): string {
   const value = process.env.RELAY_DATA_DIR?.trim() || "~/.relay";

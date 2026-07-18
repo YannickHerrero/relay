@@ -33,7 +33,11 @@ async function writeHeartbeat() {
   );
 }
 await writeHeartbeat();
-const heartbeatWriter = setInterval(() => void writeHeartbeat(), 5_000);
+const heartbeatWriter = setInterval(() => {
+  void writeHeartbeat().catch((error: unknown) => {
+    console.error("[Relay worker] unable to write heartbeat", error);
+  });
+}, 5_000);
 heartbeatWriter.unref();
 
 const poller = setInterval(() => {
@@ -45,7 +49,6 @@ const poller = setInterval(() => {
     active.add(promise);
   }
 }, 300);
-poller.unref();
 
 async function processJob(job: OrchestrationJob): Promise<void> {
   if (job.taskId && !queue.acquireTaskLock(job.taskId)) {

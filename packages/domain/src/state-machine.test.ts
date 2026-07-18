@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assertTransition, canTransition } from "./state-machine";
+import { assertTransition, canTransition, nextTaskPhase, taskPhaseForStage } from "./state-machine";
 
 describe("task state machine", () => {
   it("allows user-controlled approval transitions", () => {
@@ -13,6 +13,13 @@ describe("task state machine", () => {
     expect(canTransition("implementation", "review", "agent")).toBe(false);
     expect(canTransition("review", "ready_to_deploy", "agent")).toBe(false);
     expect(() => assertTransition("refinement", "planning", "agent")).toThrow(/requires a user/);
+  });
+
+  it("maps internal deployment states into one visual phase", () => {
+    expect(taskPhaseForStage("ready_to_deploy")).toBe("deploy");
+    expect(taskPhaseForStage("deploying")).toBe("deploy");
+    expect(nextTaskPhase("review")).toBe("deploy");
+    expect(nextTaskPhase("done")).toBeUndefined();
   });
 
   it("rejects transitions out of done", () => {

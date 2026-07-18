@@ -1,4 +1,29 @@
-import type { TaskStage } from "./schemas";
+import type { TaskPhase, TaskStage } from "./schemas";
+
+export const taskPhases = ["refine", "plan", "build", "review", "deploy", "done"] as const;
+
+export const taskPhaseLabels: Readonly<Record<TaskPhase, string>> = {
+  refine: "Refine",
+  plan: "Plan",
+  build: "Build",
+  review: "Review",
+  deploy: "Deploy",
+  done: "Done",
+};
+
+export function taskPhaseForStage(stage: TaskStage): TaskPhase {
+  if (stage === "refinement") return "refine";
+  if (stage === "planning") return "plan";
+  if (stage === "implementation") return "build";
+  if (stage === "review") return "review";
+  if (stage === "done") return "done";
+  return "deploy";
+}
+
+export function nextTaskPhase(phase: TaskPhase): TaskPhase | undefined {
+  const index = taskPhases.indexOf(phase);
+  return taskPhases[index + 1];
+}
 
 export const allowedTransitions: Readonly<Record<TaskStage, readonly TaskStage[]>> = {
   refinement: ["planning"],

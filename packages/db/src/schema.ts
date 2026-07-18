@@ -315,6 +315,7 @@ export const deploymentConfirmations = sqliteTable("deployment_confirmations", {
     .notNull()
     .references(() => tasks.id, { onDelete: "cascade" }),
   recipeId: text("recipe_id").notNull(),
+  recipeSnapshot: text("recipe_snapshot", { mode: "json" }).notNull(),
   commitSha: text("commit_sha").notNull(),
   expiresAt: text("expires_at").notNull(),
   usedAt: text("used_at"),

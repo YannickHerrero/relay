@@ -88,6 +88,11 @@ CREATE TABLE deployment_confirmations (
 );
 `,
   },
+  {
+    id: 3,
+    name: "deployment-confirmation-snapshots",
+    sql: "ALTER TABLE deployment_confirmations ADD COLUMN recipe_snapshot TEXT NOT NULL DEFAULT '{}'",
+  },
 ] as const;
 
 function migrate(sqlite: BetterSqlite3.Database): void {

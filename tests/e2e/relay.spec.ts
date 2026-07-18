@@ -129,7 +129,7 @@ test.describe.serial("Relay owner workflow", () => {
     }
   });
 
-  test("retries and safely deletes a failed task", async ({ page }) => {
+  test("retries and safely deletes a failed task", async ({ page }, testInfo) => {
     await signIn(page);
     const relayDatabase = createDatabase(join(process.cwd(), ".relay-e2e-data", "relay.db"));
     const existingTask = relayDatabase.db.select().from(tasks).get();
@@ -157,6 +157,11 @@ test.describe.serial("Relay owner workflow", () => {
       .run();
 
     await page.goto(`/tasks/${taskId}`);
+    await expect(page.getByRole("button", { name: "Retry task" })).toBeVisible();
+    await testInfo.attach("failed-task-desktop", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
     await page.getByRole("button", { name: "Retry task" }).click();
     await expect(page).toHaveURL(new RegExp(`/tasks/${taskId}\\?tab=conversation$`));
     expect(
@@ -184,8 +189,16 @@ test.describe.serial("Relay owner workflow", () => {
       .where(eq(tasks.id, taskId))
       .run();
     await page.reload();
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole("link", { name: "Delete" }).click();
     await expect(page.getByRole("heading", { name: "Delete task?" })).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+    await testInfo.attach("delete-task-phone", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
     await page.getByLabel(/I understand this permanently deletes/).check();
     await page.getByRole("button", { name: "Delete task" }).click();
     await expect(page).toHaveURL(/\/board$/);

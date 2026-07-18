@@ -27,7 +27,9 @@ import {
 import { asc, desc, eq } from "drizzle-orm";
 
 import { ConversationComposer } from "@/components/conversation-composer";
+import { ImplementationControls } from "@/components/implementation-controls";
 import { PlanFeedback } from "@/components/plan-feedback";
+import { ReviewActions } from "@/components/review-actions";
 import { SpecificationEditor } from "@/components/specification-editor";
 import { TaskLiveRefresh } from "@/components/task-live-refresh";
 import { WorkflowAction } from "@/components/workflow-action";
@@ -179,7 +181,9 @@ export default async function TaskDetailPage({
               <span className="mono">base {row.task.baseBranch}</span>
             </div>
           </div>
-          {row.task.runtimeStatus === "blocked" || row.task.runtimeStatus === "failed" ? (
+          {row.task.stage === "implementation" ? (
+            <ImplementationControls taskId={taskId} status={row.task.runtimeStatus} />
+          ) : row.task.runtimeStatus === "blocked" || row.task.runtimeStatus === "failed" ? (
             <div className="relay-task-alert">
               <CircleAlert size={14} /> {row.task.blockedReason ?? "Intervention required"}
             </div>
@@ -200,6 +204,7 @@ export default async function TaskDetailPage({
         <main className="relay-task-main">
           {tab === "overview" ? (
             <Overview
+              taskId={taskId}
               task={row.task}
               project={row.project}
               requirement={requirement}
@@ -266,6 +271,7 @@ export default async function TaskDetailPage({
 }
 
 function Overview({
+  taskId,
   task,
   project,
   requirement,
@@ -273,6 +279,7 @@ function Overview({
   commits,
   tests,
 }: {
+  taskId: string;
   task: typeof tasks.$inferSelect;
   project: typeof projects.$inferSelect;
   requirement: RefinedRequirement | undefined;
@@ -319,6 +326,12 @@ function Overview({
             "The product refiner is preparing the first structured requirement."}
         </p>
       </section>
+      {task.stage === "review" ? (
+        <ReviewActions
+          taskId={taskId}
+          commits={commits.map((commit) => ({ sha: commit.sha, message: commit.message }))}
+        />
+      ) : null}
     </div>
   );
 }

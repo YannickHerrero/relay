@@ -997,6 +997,95 @@ textarea.field {
   font-weight: 700;
 }
 
+.relay-implementation-controls {
+  position: relative;
+  display: grid;
+  justify-items: end;
+  gap: 5px;
+}
+
+.relay-control-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.relay-implementation-controls > small {
+  color: var(--relay-danger);
+  font-size: 9px;
+}
+
+.relay-inline-dialog {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklch, var(--relay-fg) 30%, transparent);
+  padding: 18px;
+}
+
+.relay-inline-dialog form {
+  display: grid;
+  width: min(560px, 100%);
+  gap: 14px;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-lg);
+  background: var(--relay-bg);
+  box-shadow: var(--relay-shadow-panel);
+  padding: 20px;
+}
+
+.relay-inline-dialog header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.relay-inline-dialog h2 {
+  margin: 5px 0 0;
+  font-size: 17px;
+}
+
+.relay-inline-dialog header button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border: 0;
+  background: transparent;
+}
+
+.relay-inline-dialog fieldset {
+  display: grid;
+  gap: 8px;
+  border: 0;
+  padding: 0;
+}
+
+.relay-inline-dialog fieldset label {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 5px;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-sm);
+  background: var(--relay-surface);
+  padding: 10px;
+}
+
+.relay-inline-dialog fieldset strong,
+.relay-inline-dialog fieldset small {
+  display: block;
+  font-size: 10px;
+}
+
+.relay-inline-dialog fieldset small {
+  margin-top: 2px;
+  color: var(--relay-muted);
+}
+
 .relay-task-alert {
   display: flex;
   max-width: 320px;
@@ -1169,6 +1258,41 @@ textarea.field {
 .relay-content-section > p:last-child {
   max-width: 760px;
   margin-bottom: 0;
+}
+
+.relay-review-gate {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 26px;
+  border: 1px solid var(--relay-border);
+  border-left: 3px solid var(--relay-info);
+  border-radius: var(--relay-radius-md);
+  background: var(--relay-surface);
+  padding: 15px;
+}
+
+.relay-review-gate h2 {
+  margin: 4px 0 3px;
+  font-size: 14px;
+}
+
+.relay-review-gate p {
+  margin: 0;
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-review-gate > div:nth-child(2) {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 7px;
+}
+
+.relay-review-gate > small {
+  color: var(--relay-danger);
+  font-size: 9px;
 }
 
 .relay-refinement-grid {
@@ -1768,6 +1892,13 @@ textarea.field {
     flex-direction: column;
   }
 
+  .relay-implementation-controls,
+  .relay-control-buttons {
+    width: 100%;
+    justify-items: stretch;
+    justify-content: flex-start;
+  }
+
   .relay-task-tabs {
     padding-inline: 14px;
   }
@@ -1800,6 +1931,15 @@ textarea.field {
 
   .relay-overview-grid {
     grid-template-columns: 1fr;
+  }
+
+  .relay-review-gate {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .relay-review-gate > div:nth-child(2) {
+    flex-direction: column;
   }
 
   .relay-terminal > div {

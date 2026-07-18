@@ -100,6 +100,12 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
 
+  packages/process:
+    devDependencies:
+      "@types/node":
+        specifier: ^24.0.0
+        version: 24.13.3
+
   packages/project-config:
     dependencies:
       "@relay/domain":

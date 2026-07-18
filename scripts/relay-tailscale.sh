@@ -120,8 +120,24 @@ case "${1:-}" in
   status)
     tailscale serve status
     ;;
+  status-json)
+    config="$(serve_config)"
+    state="conflict"
+    if config_is_relay_only "$config"; then
+      state="active"
+    elif config_is_empty "$config"; then
+      state="inactive"
+    fi
+    RELAY_SERVE_STATE="$state" RELAY_SERVE_ORIGIN="$RELAY_ORIGIN" RELAY_SERVE_TARGET="$target" node -e '
+      process.stdout.write(JSON.stringify({
+        state: process.env.RELAY_SERVE_STATE,
+        origin: process.env.RELAY_SERVE_ORIGIN,
+        target: process.env.RELAY_SERVE_TARGET,
+      }));
+    '
+    ;;
   *)
-    printf 'Usage: %s {start|stop|status}\n' "$0" >&2
+    printf 'Usage: %s {start|stop|status|status-json}\n' "$0" >&2
     exit 1
     ;;
 esac

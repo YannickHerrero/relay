@@ -24,7 +24,7 @@ export async function loadProjectConfig(repositoryPath: string): Promise<LoadedP
 
   const repositoryRoot = await realpath(repositoryPath);
   for (const relativePath of configLocations) {
-    const source = join(repositoryRoot, relativePath);
+    const source = join(/* turbopackIgnore: true */ repositoryRoot, relativePath);
     try {
       await access(source);
     } catch {

@@ -4,6 +4,6 @@ import { resolve } from "node:path";
 export function relayDataDir(): string {
   const configured = process.env.RELAY_DATA_DIR?.trim() || "~/.relay";
   return configured === "~" || configured.startsWith("~/")
-    ? resolve(homedir(), configured.slice(2))
-    : resolve(configured);
+    ? resolve(/* turbopackIgnore: true */ homedir(), configured.slice(2))
+    : resolve(/* turbopackIgnore: true */ configured);
 }

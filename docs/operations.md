@@ -83,5 +83,6 @@ Git worktrees can be recreated from task branches, but uncommitted interrupted w
 - **Failed deployment:** retry explicitly against the same SHA, cancel back to Ready to Deploy, or return to Implementation for a code fix.
 - **Stale process:** inspect PM2, then terminate the process group before restarting the worker.
 - **Codex authentication:** run `pnpm --filter @relay/agent exec codex login` as the Relay macOS account.
+- **Owner login blocked:** wait for the fifteen-minute block to expire. If local recovery is necessary, verify that the attempts were yours and clear only the owner limiter with `sqlite3 "$RELAY_DATA_DIR/relay.db" "DELETE FROM login_rate_limits WHERE key = 'owner-login';"`.
 
 Relay never automatically retries a sensitive deployment action after a worker restart.

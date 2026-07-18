@@ -31,7 +31,19 @@ Deploying → Done | Implementation | Ready to Deploy
 Done → terminal
 ```
 
-Only implementation completion can move to Review automatically. A successful already-confirmed deployment can move to Done. Every approval before deployment and every sensitive delivery action originates from an authenticated owner request.
+Implementation completion records `implementation.ready_for_review` and waits in Implementation until the owner moves it to Review. A successful already-confirmed deployment can move to Done automatically. Every approval before deployment and every sensitive delivery action originates from an authenticated owner request.
+
+## Workboard phases
+
+The owner-facing workflow groups internal states into six phases:
+
+```text
+Refine → Plan → Build → Review → Deploy → Done
+```
+
+`ready_to_deploy` and `deploying` are both shown under Deploy with distinct runtime labels. Dialog buttons and board drag-and-drop call the same validated transition service. Only the adjacent phase is accepted, active work cannot move, backward transitions remain explicit review or refinement actions, and entering Deploy never executes a recipe. Phase visits and message context are stored durably so completed and previously visited tabs remain readable after backward movement.
+
+Agent events stream to the task dialog over SSE. Provider-supplied progress summaries, commands, output, files, tests, artifacts, and completion events are shown incrementally; Relay does not expose private chain-of-thought.
 
 ## Versions and history
 

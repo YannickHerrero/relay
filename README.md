@@ -14,6 +14,8 @@ Relay keeps one task record from a vague request through:
 
 Agents may inspect repositories, edit files, run commands, use development tools, and collect evidence. Relay owns every state transition and commit boundary. An agent can never push or deploy by itself.
 
+The Workboard presents six consistent phases: **Refine → Plan → Build → Review → Deploy → Done**. Cards open in a large board dialog with one conversation tab per phase, a live coding-agent work log, and the complete Activity & status rail. Completed phases remain readable, future phases stay disabled, and eligible cards can be dragged only to their immediate next phase. Dragging uses the same server validation as the dialog action and never starts a deployment.
+
 ## Stack
 
 - Next.js, React, TypeScript, Tailwind CSS

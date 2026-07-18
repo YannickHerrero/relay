@@ -82,8 +82,9 @@ Git worktrees can be recreated from task branches, but uncommitted interrupted w
 - **Stopped task:** use **Resume agent**. Existing uncommitted work is inspected and continued.
 - **Blocked task:** inspect logs, diff, and the recorded reason before resuming.
 - **Failed task:** correct the reported cause, then use **Retry task**. Relay queues only the most recent failed non-deployment operation with its original payload; deployment retries remain behind their dedicated SHA-bound confirmation flow.
-- **Failed deployment:** retry explicitly against the same SHA, cancel back to Ready to Deploy, or return to Implementation for a code fix.
-- **Task deletion:** stop active work first, open **Delete**, review the consequences, and confirm. Relay deletes task records, uploads, artifacts, and its worktree while preserving the source repository and task branch.
+- **Ready implementation:** use **Move to review** or drag the card from Build to Review after validation finishes. Relay no longer advances this owner gate automatically.
+- **Failed deployment:** retry explicitly against the same SHA, cancel back to the ready state in Deploy, or return to Build for a code fix.
+- **Task deletion:** stop active work first, open the task dialog, choose **Delete**, review the consequences, and confirm. Relay deletes task records, uploads, artifacts, and its worktree while preserving the source repository and task branch.
 - **Stale process:** inspect PM2, then terminate the process group before restarting the worker.
 - **Codex authentication:** run `codex login --device-auth` as the Relay macOS account, then verify `codex login status`. Worker health reports when authentication is missing and Relay blocks new tasks until it is restored.
 - **Owner login blocked:** wait for the fifteen-minute block to expire. If local recovery is necessary, verify that the attempts were yours and clear only the owner limiter with `sqlite3 "$RELAY_DATA_DIR/relay.db" "DELETE FROM login_rate_limits WHERE key = 'owner-login';"`.

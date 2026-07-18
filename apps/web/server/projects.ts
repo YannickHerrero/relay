@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { realpath } from "node:fs/promises";
+import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 import { projectConfigVersions, projects } from "@relay/db";
@@ -10,28 +11,87 @@ import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { database } from "./database";
+import {
+  availableProjectDirectory,
+  existingProjectDirectory,
+  projectDirectoryNameSchema,
+} from "./project-directory";
 
 const execFileAsync = promisify(execFile);
 
 export const projectInputSchema = z.object({
   name: z.string().trim().min(1).max(100),
-  repositoryPath: z.string().trim().min(1),
+  directoryName: projectDirectoryNameSchema,
   defaultBranch: z.string().trim().min(1).max(200).default("main"),
   projectType: projectTypeSchema,
 });
 
 export async function createProject(input: z.infer<typeof projectInputSchema>) {
   const values = projectInputSchema.parse(input);
-  const repositoryPath = await realpath(values.repositoryPath);
+  const repositoryPath = await existingProjectDirectory(values.directoryName);
   await verifyRepository(repositoryPath, values.defaultBranch);
+  return persistProject(values, repositoryPath);
+}
+
+export async function createNewProject(input: z.infer<typeof projectInputSchema>) {
+  const values = projectInputSchema.parse(input);
+  const repositoryPath = await initializeProjectRepository(values);
+  return persistProject(values, repositoryPath);
+}
+
+export async function initializeProjectRepository(
+  input: z.infer<typeof projectInputSchema>,
+): Promise<string> {
+  const values = projectInputSchema.parse(input);
+  await verifyBranchName(values.defaultBranch);
+  const repositoryPath = await availableProjectDirectory(values.directoryName);
+  await mkdir(repositoryPath);
+  try {
+    await execFileAsync("git", ["init", "-b", values.defaultBranch, repositoryPath]);
+    const title = values.name.replace(/\s+/g, " ");
+    await writeFile(join(repositoryPath, "README.md"), `# ${title}\n`);
+    await execFileAsync("git", ["-C", repositoryPath, "add", "README.md"]);
+    await execFileAsync("git", [
+      "-C",
+      repositoryPath,
+      "-c",
+      "user.name=Relay",
+      "-c",
+      "user.email=relay@localhost",
+      "commit",
+      "-m",
+      "chore: initialize project",
+    ]);
+    return repositoryPath;
+  } catch (error) {
+    await rm(repositoryPath, { recursive: true, force: true });
+    throw new Error("Unable to initialize the Git repository", { cause: error });
+  }
+}
+
+async function persistProject(
+  values: z.infer<typeof projectInputSchema>,
+  repositoryPath: string,
+): Promise<string> {
   const loaded = await loadProjectConfig(repositoryPath);
   const now = new Date().toISOString();
   const projectId = randomUUID();
+  const projectValues = {
+    name: values.name,
+    defaultBranch: values.defaultBranch,
+    projectType: values.projectType,
+  };
   const { db, sqlite } = database();
 
   sqlite.transaction(() => {
     db.insert(projects)
-      .values({ ...values, id: projectId, repositoryPath, createdAt: now, updatedAt: now })
+      .values({
+        ...projectValues,
+        id: projectId,
+        repositoryPath,
+        createdAt: now,
+        updatedAt: now,
+      })
       .run();
     db.insert(projectConfigVersions)
       .values({
@@ -75,6 +135,14 @@ export async function refreshProjectConfig(projectId: string) {
     db.update(projects).set({ updatedAt: now }).where(eq(projects.id, projectId)).run();
   })();
   return next;
+}
+
+async function verifyBranchName(branch: string): Promise<void> {
+  try {
+    await execFileAsync("git", ["check-ref-format", "--branch", branch]);
+  } catch (error) {
+    throw new Error(`Invalid Git branch name '${branch}'`, { cause: error });
+  }
 }
 
 export async function verifyRepository(path: string, branch: string): Promise<void> {

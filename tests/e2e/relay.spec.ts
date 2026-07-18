@@ -88,6 +88,40 @@ test.describe.serial("Relay owner workflow", () => {
       }
     }
   });
+
+  test("rate limits repeated owner login failures", async ({ page }) => {
+    await page.goto("/login");
+    const result = await page.evaluate(async (password) => {
+      const login = async (candidate: string) => {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ password: candidate }),
+        });
+        return {
+          status: response.status,
+          retryAfter: response.headers.get("Retry-After"),
+        };
+      };
+
+      const failedBeforeSuccess = await login("0000");
+      const successfulLogin = await login(password);
+      await fetch("/api/auth/logout", { method: "POST" });
+
+      const failedStatuses: number[] = [];
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        failedStatuses.push((await login("0000")).status);
+      }
+      const blockedLogin = await login(password);
+      return { failedBeforeSuccess, successfulLogin, failedStatuses, blockedLogin };
+    }, ownerPassword);
+
+    expect(result.failedBeforeSuccess.status).toBe(401);
+    expect(result.successfulLogin.status).toBe(200);
+    expect(result.failedStatuses).toEqual([401, 401, 401, 401, 401]);
+    expect(result.blockedLogin.status).toBe(429);
+    expect(Number(result.blockedLogin.retryAfter)).toBeGreaterThan(0);
+  });
 });
 
 async function signIn(page: Page) {

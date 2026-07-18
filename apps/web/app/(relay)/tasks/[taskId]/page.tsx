@@ -27,8 +27,10 @@ import {
 import { asc, desc, eq } from "drizzle-orm";
 
 import { ConversationComposer } from "@/components/conversation-composer";
+import { PlanFeedback } from "@/components/plan-feedback";
 import { SpecificationEditor } from "@/components/specification-editor";
 import { TaskLiveRefresh } from "@/components/task-live-refresh";
+import { WorkflowAction } from "@/components/workflow-action";
 import { database } from "@/server/database";
 
 export const dynamic = "force-dynamic";
@@ -224,6 +226,8 @@ export default async function TaskDetailPage({
           ) : null}
           {tab === "plan" ? (
             <Plan
+              taskId={taskId}
+              stage={row.task.stage}
               plan={plan?.success ? plan.data : undefined}
               versions={plans}
               comments={comments}
@@ -402,6 +406,21 @@ function Specification({
       ) : (
         <p className="relay-muted-copy">No structured specification is available yet.</p>
       )}
+      {editable && requirement ? (
+        <div className="relay-gate-actions">
+          <div>
+            <strong>Requirement approval gate</strong>
+            <p>Approval freezes an immutable specification and starts read-only planning.</p>
+          </div>
+          <WorkflowAction
+            endpoint={`/api/tasks/${taskId}/requirement/approve`}
+            label="Approve requirement and move to planning"
+            redirectTab="plan"
+            icon="next"
+            confirm="Freeze this requirement and start technical planning?"
+          />
+        </div>
+      ) : null}
       {versions.length > 1 ? (
         <div className="relay-version-list">
           <h3>Version history</h3>
@@ -471,10 +490,14 @@ function RequirementSummary({
 }
 
 function Plan({
+  taskId,
+  stage,
   plan,
   versions,
   comments,
 }: {
+  taskId: string;
+  stage: string;
   plan: ReturnType<typeof implementationPlanSchema.parse> | undefined;
   versions: Array<typeof planVersions.$inferSelect>;
   comments: Array<typeof planComments.$inferSelect>;
@@ -510,6 +533,27 @@ function Plan({
           <p>{comment.content}</p>
         </div>
       ))}
+      {stage === "planning" ? (
+        <>
+          <PlanFeedback taskId={taskId} commits={plan.commits} />
+          <div className="relay-gate-actions">
+            <WorkflowAction
+              endpoint={`/api/tasks/${taskId}/plan/return`}
+              label="Return to refinement"
+              redirectTab="conversation"
+              icon="return"
+              tone="default"
+            />
+            <WorkflowAction
+              endpoint={`/api/tasks/${taskId}/plan/approve`}
+              label="Approve plan and start implementation"
+              redirectTab="execution"
+              icon="next"
+              confirm={`Approve plan v${versions[0]?.version} and create its isolated worktree?`}
+            />
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

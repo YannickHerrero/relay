@@ -1390,6 +1390,73 @@ textarea.field {
   margin: 3px 0 0;
 }
 
+.relay-gate-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 24px;
+  border-top: 1px solid var(--relay-border);
+  padding-top: 16px;
+}
+
+.relay-gate-actions strong {
+  font-size: 11px;
+}
+
+.relay-gate-actions p {
+  margin: 2px 0 0;
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-action-wrap {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+}
+
+.relay-action-wrap small,
+.relay-plan-feedback span {
+  color: var(--relay-danger);
+  font-size: 9px;
+}
+
+.relay-plan-feedback {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 9px;
+  margin-top: 20px;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-md);
+  padding: 12px;
+}
+
+.relay-plan-feedback > div:first-child {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.relay-plan-feedback textarea {
+  min-height: 68px;
+}
+
+.relay-plan-feedback > div:last-child {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.relay-plan-feedback small {
+  color: var(--relay-muted);
+  font-size: 9px;
+}
+
 .relay-terminal {
   overflow: auto;
   max-height: 560px;
@@ -1711,6 +1778,20 @@ textarea.field {
 
   .relay-task-activity {
     display: none;
+  }
+
+  .relay-gate-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .relay-action-wrap,
+  .relay-action-wrap .button {
+    width: 100%;
+  }
+
+  .relay-plan-feedback {
+    grid-template-columns: 1fr;
   }
 
   .relay-panel {

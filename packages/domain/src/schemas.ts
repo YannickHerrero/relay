@@ -46,16 +46,26 @@ const commandGroupsSchema = z.object({
   finalValidation: z.array(z.string().min(1)).optional(),
 });
 
-export const deploymentRecipeSchema = z.object({
-  id: z.string().regex(/^[a-z0-9][a-z0-9-_]*$/),
-  label: z.string().min(1).max(120),
-  description: z.string().max(500).optional(),
-  kind: z.enum(["command", "git_push"]).default("command"),
-  commands: z.array(z.string().min(1)).max(20).default([]),
-  environment: z.string().max(80).default("default"),
-  requiresConfirmation: z.boolean().default(true),
-  resultUrlPattern: z.string().url().optional(),
-});
+export const deploymentRecipeSchema = z
+  .object({
+    id: z.string().regex(/^[a-z0-9][a-z0-9-_]*$/),
+    label: z.string().min(1).max(120),
+    description: z.string().max(500).optional(),
+    kind: z.enum(["command", "git_push"]).default("command"),
+    commands: z.array(z.string().min(1)).max(20).default([]),
+    environment: z.string().max(80).default("default"),
+    requiresConfirmation: z.boolean().default(true),
+    resultUrlPattern: z.string().url().optional(),
+  })
+  .superRefine((recipe, context) => {
+    if (recipe.kind === "command" && recipe.commands.length === 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["commands"],
+        message: "Command deployment recipes require at least one command",
+      });
+    }
+  });
 
 export const projectConfigSchema = z.object({
   commands: commandGroupsSchema.default({}),

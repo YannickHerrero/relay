@@ -58,6 +58,36 @@ test.describe.serial("Relay owner workflow", () => {
     await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(page.getByRole("link", { name: "Projects" })).toBeVisible();
   });
+
+  test("fits the complete responsive viewport matrix", async ({ page }, testInfo) => {
+    await signIn(page);
+    const viewports = [
+      ["mobile-compact", 360, 800],
+      ["mobile-standard", 390, 844],
+      ["mobile-large", 430, 932],
+      ["small-tablet", 600, 960],
+      ["tablet-portrait", 820, 1180],
+      ["tablet-landscape", 1024, 768],
+      ["laptop", 1366, 768],
+      ["desktop", 1440, 900],
+      ["wide", 1920, 1080],
+    ] as const;
+    for (const [name, width, height] of viewports) {
+      await page.setViewportSize({ width, height });
+      await page.goto("/board");
+      await expect(page.getByRole("heading", { name: "Workboard" })).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `${name} should not overflow the viewport`,
+      ).toBe(true);
+      if (["mobile-standard", "tablet-portrait", "desktop"].includes(name)) {
+        await testInfo.attach(`board-${name}`, {
+          body: await page.screenshot({ fullPage: true }),
+          contentType: "image/png",
+        });
+      }
+    }
+  });
 });
 
 async function signIn(page: Page) {

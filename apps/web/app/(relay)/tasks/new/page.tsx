@@ -4,10 +4,13 @@ import Link from "next/link";
 
 import { TaskForm } from "@/components/task-form";
 import { database } from "@/server/database";
+import { preferredTaskProjectId } from "@/server/task-preferences";
 
 export const dynamic = "force-dynamic";
 
-export default function NewTaskPage() {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function NewTaskPage({ searchParams }: { searchParams: SearchParams }) {
   const rows = database()
     .db.select({ id: projects.id, name: projects.name, defaultBranch: projects.defaultBranch })
     .from(projects)
@@ -18,11 +21,25 @@ export default function NewTaskPage() {
       <section className="relay-empty-page">
         <p className="kicker">Project required</p>
         <h1>Register a repository first.</h1>
-        <p>Tasks need a trusted repository and base branch.</p>
-        <Link className="button button-primary" href="/projects/new">
-          Register project
+        <p>Tasks need a trusted repository before Relay can begin refinement.</p>
+        <Link className="button button-primary" href="/projects">
+          View projects
         </Link>
       </section>
     );
-  return <TaskForm projects={rows} />;
+
+  const query = await searchParams;
+  const requestedProjectId = typeof query.project === "string" ? query.project : undefined;
+  const initialProjectId = await preferredTaskProjectId(
+    rows.map((project) => project.id),
+    requestedProjectId,
+  );
+  const initialError =
+    query.error === "create-failed"
+      ? "Unable to create the task. Check the request and files."
+      : undefined;
+
+  return (
+    <TaskForm projects={rows} initialProjectId={initialProjectId} initialError={initialError} />
+  );
 }

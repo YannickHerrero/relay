@@ -937,53 +937,102 @@ textarea.field {
   font: 10px var(--relay-font-mono);
 }
 
-.relay-file-field {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 5px 12px;
-  border: 1px dashed var(--relay-border-strong);
-  border-radius: var(--relay-radius-sm);
-  padding: 12px;
+.relay-task-create-page {
+  width: min(780px, 100%);
+  margin: 0 auto;
+  padding: clamp(24px, 6vw, 70px) clamp(14px, 4vw, 34px);
 }
 
-.relay-file-field > span {
+.relay-task-create-page > header {
+  margin-bottom: 18px;
+}
+
+.relay-task-create-page h1 {
+  margin: 6px 0 0;
+  font-size: clamp(24px, 4vw, 34px);
+  letter-spacing: -0.045em;
+}
+
+.relay-task-composer {
+  overflow: hidden;
+}
+
+.relay-task-request {
+  display: block;
+  width: 100%;
+  min-height: 230px;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--relay-fg);
+  padding: clamp(18px, 4vw, 28px);
+  font: 15px/1.65 var(--relay-font-sans);
+}
+
+.relay-task-request::placeholder {
+  color: var(--relay-subtle);
+}
+
+.relay-task-composer-bar {
   display: flex;
   align-items: center;
-  gap: 7px;
-  font-size: 12px;
-  font-weight: 700;
+  gap: 10px;
+  border-top: 1px solid var(--relay-border);
+  background: var(--relay-bg);
+  padding: 10px 12px;
 }
 
-.relay-file-field input {
-  grid-row: 1 / 3;
-  grid-column: 2;
-  max-width: 230px;
+.relay-task-project-picker,
+.relay-task-attachments {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--relay-muted);
   font-size: 11px;
 }
 
-.relay-file-field small {
+.relay-task-project-picker select {
+  max-width: 190px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--relay-fg);
+  font: 11px var(--relay-font-mono);
+}
+
+.relay-task-attachments {
+  cursor: pointer;
+}
+
+.relay-task-attachments input {
+  max-width: 170px;
   color: var(--relay-muted);
   font-size: 10px;
 }
 
-.relay-agent-choice {
-  display: grid;
-  grid-template-columns: 8px 1fr;
-  align-items: center;
-  gap: 9px;
-  border-radius: var(--relay-radius-sm);
-  background: var(--relay-accent-soft);
-  padding: 10px 12px;
+.relay-task-attachments input::file-selector-button {
+  display: none;
 }
 
-.relay-agent-choice strong {
-  font-size: 12px;
+.relay-task-submit {
+  margin-left: auto;
+  flex: 0 0 auto;
 }
 
-.relay-agent-choice p {
-  margin: 1px 0 0;
+.relay-task-file-help {
+  margin: 0;
+  border-top: 1px solid var(--relay-border);
   color: var(--relay-muted);
-  font: 10px var(--relay-font-mono);
+  padding: 7px 14px;
+  font: 9px var(--relay-font-mono);
+  text-align: right;
+}
+
+.relay-task-composer > .relay-form-error {
+  border-top: 1px solid var(--relay-border);
+  padding: 10px 14px;
 }
 
 .relay-board-page {
@@ -2466,14 +2515,29 @@ textarea.field {
     flex-basis: min(270px, 82vw);
   }
 
-  .relay-file-field {
-    grid-template-columns: 1fr;
+  .relay-task-request {
+    min-height: 210px;
   }
 
-  .relay-file-field input {
-    grid-row: auto;
-    grid-column: 1;
-    max-width: 100%;
+  .relay-task-composer-bar {
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .relay-task-project-picker {
+    width: 100%;
+  }
+
+  .relay-task-project-picker select {
+    max-width: calc(100% - 24px);
+  }
+
+  .relay-task-attachments {
+    flex: 1 1 150px;
+  }
+
+  .relay-task-file-help {
+    text-align: left;
   }
 
   .relay-page-head,

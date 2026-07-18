@@ -1,18 +1,24 @@
 "use client";
 
-import { ArrowLeft, Paperclip, Sparkles } from "lucide-react";
+import { ArrowLeft, FolderGit2, Paperclip, Send } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 type ProjectOption = { id: string; name: string; defaultBranch: string };
 
-export function TaskForm({ projects }: { projects: ProjectOption[] }) {
+export function TaskForm({
+  projects,
+  initialProjectId,
+  initialError,
+}: {
+  projects: ProjectOption[];
+  initialProjectId: string;
+  initialError?: string | undefined;
+}) {
   const router = useRouter();
-  const [projectId, setProjectId] = useState(projects[0]?.id ?? "");
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string>();
-  const selectedProject = projects.find((project) => project.id === projectId);
+  const [error, setError] = useState<string | undefined>(initialError);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -20,6 +26,7 @@ export function TaskForm({ projects }: { projects: ProjectOption[] }) {
     setError(undefined);
     const response = await fetch("/api/tasks", {
       method: "POST",
+      headers: { accept: "application/json" },
       body: new FormData(event.currentTarget),
     });
     const result = (await response.json()) as { id?: string; error?: string };
@@ -33,55 +40,39 @@ export function TaskForm({ projects }: { projects: ProjectOption[] }) {
   }
 
   return (
-    <div className="relay-form-page">
+    <div className="relay-task-create-page">
       <Link href="/board" className="relay-back">
         <ArrowLeft size={13} /> Board
       </Link>
       <header>
-        <p className="kicker">Requirement refinement</p>
-        <h1>Create a task</h1>
-        <p>Start with the outcome you want. The product refiner will help make it precise.</p>
+        <p className="kicker">New task</p>
+        <h1>What should Relay work on?</h1>
       </header>
-      <form className="surface relay-form-card" onSubmit={submit}>
-        <div className="relay-form-intro">
-          <Sparkles size={18} />
-          <div>
-            <strong>Vague is acceptable here</strong>
-            <p>
-              Relay will not allow implementation until you approve a specification and technical
-              plan.
-            </p>
-          </div>
-        </div>
-        <label>
-          <span className="label">Title</span>
-          <input
-            className="field"
-            name="title"
-            required
-            maxLength={160}
-            placeholder="Make word definitions feel faster"
-          />
+      <form
+        action="/api/tasks"
+        method="post"
+        encType="multipart/form-data"
+        className="surface relay-task-composer"
+        onSubmit={submit}
+      >
+        <label className="sr-only" htmlFor="task-request">
+          Task request
         </label>
-        <label>
-          <span className="label">Initial request</span>
-          <textarea
-            className="field"
-            name="initialRequest"
-            required
-            maxLength={50000}
-            placeholder="Describe the problem, desired outcome, and anything the agent should preserve…"
-          />
-        </label>
-        <div className="relay-form-grid">
-          <label>
-            <span className="label">Project</span>
-            <select
-              className="field"
-              name="projectId"
-              value={projectId}
-              onChange={(event) => setProjectId(event.target.value)}
-            >
+        <textarea
+          className="relay-task-request"
+          id="task-request"
+          name="request"
+          required
+          maxLength={50000}
+          rows={9}
+          autoFocus
+          placeholder="Describe what you want to build, fix, investigate, or improve…"
+        />
+        <div className="relay-task-composer-bar">
+          <label className="relay-task-project-picker">
+            <FolderGit2 size={14} />
+            <span className="sr-only">Project</span>
+            <select name="projectId" defaultValue={initialProjectId} required>
               {projects.map((project) => (
                 <option key={project.id} value={project.id}>
                   {project.name}
@@ -89,68 +80,26 @@ export function TaskForm({ projects }: { projects: ProjectOption[] }) {
               ))}
             </select>
           </label>
-          <label>
-            <span className="label">Base branch</span>
+          <label className="relay-task-attachments">
+            <Paperclip size={14} />
+            <span>Add files</span>
             <input
-              className="field mono"
-              name="baseBranch"
-              key={selectedProject?.defaultBranch}
-              defaultValue={selectedProject?.defaultBranch}
-              required
+              type="file"
+              name="attachments"
+              multiple
+              accept="image/*,video/*,.txt,.log,.json,.md,.pdf"
             />
           </label>
-          <label>
-            <span className="label">Task type</span>
-            <select className="field" name="type" defaultValue="feature">
-              <option value="feature">Feature</option>
-              <option value="bug">Bug</option>
-              <option value="refactor">Refactor</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="investigation">Investigation</option>
-            </select>
-          </label>
-          <label>
-            <span className="label">Priority</span>
-            <select className="field" name="priority" defaultValue="medium">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
-          </label>
+          <button className="button button-primary relay-task-submit" disabled={pending}>
+            <Send size={13} /> {pending ? "Starting…" : "Start task"}
+          </button>
         </div>
-        <label className="relay-file-field">
-          <span>
-            <Paperclip size={14} /> Attach evidence
-          </span>
-          <input
-            type="file"
-            name="attachments"
-            multiple
-            accept="image/*,video/*,.txt,.log,.json,.md,.pdf"
-          />
-          <small>Images, video, logs, documents · 25 MB each</small>
-        </label>
-        <div className="relay-agent-choice">
-          <span className="relay-status-dot" />
-          <div>
-            <strong>Codex</strong>
-            <p>Product refiner · repository read-only</p>
-          </div>
-        </div>
+        <p className="relay-task-file-help">Up to 10 files · 25 MB each</p>
         {error ? (
           <p className="relay-form-error" role="alert">
             {error}
           </p>
         ) : null}
-        <div className="relay-form-actions">
-          <Link className="button" href="/board">
-            Cancel
-          </Link>
-          <button className="button button-primary" disabled={pending || !projects.length}>
-            {pending ? "Creating…" : "Create and start refinement"}
-          </button>
-        </div>
       </form>
     </div>
   );

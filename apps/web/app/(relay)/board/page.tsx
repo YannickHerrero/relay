@@ -83,7 +83,10 @@ export default async function BoardPage({ searchParams }: { searchParams: Search
           >
             <Bot size={13} /> Active agents
           </Link>
-          <Link className="button button-primary" href="/tasks/new">
+          <Link
+            className="button button-primary"
+            href={project ? `/tasks/new?project=${encodeURIComponent(project)}` : "/tasks/new"}
+          >
             <Plus size={14} /> New task
           </Link>
         </div>

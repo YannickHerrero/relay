@@ -2,8 +2,16 @@ import { randomUUID } from "node:crypto";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { basename, join } from "node:path";
 
-import { messages, orchestrationJobs, taskAttachments, taskEvents, tasks } from "@relay/db";
+import {
+  messages,
+  orchestrationJobs,
+  projects,
+  taskAttachments,
+  taskEvents,
+  tasks,
+} from "@relay/db";
 import { taskPrioritySchema, taskTypeSchema } from "@relay/domain";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { database } from "./database";
@@ -20,6 +28,49 @@ export const taskInputSchema = z.object({
   priority: taskPrioritySchema,
   baseBranch: z.string().trim().min(1).max(200),
 });
+
+export const taskRequestSchema = z.object({
+  projectId: z.string().uuid(),
+  request: z.string().trim().min(1).max(50_000),
+});
+
+export async function createTaskFromRequest(
+  input: z.infer<typeof taskRequestSchema>,
+  files: File[],
+): Promise<string> {
+  const request = taskRequestSchema.parse(input);
+  const project = database()
+    .db.select()
+    .from(projects)
+    .where(eq(projects.id, request.projectId))
+    .get();
+  if (!project) throw new Error("Project not found");
+  return createTask(taskValuesFromRequest(request, project.defaultBranch), files);
+}
+
+export function taskValuesFromRequest(
+  input: z.infer<typeof taskRequestSchema>,
+  defaultBranch: string,
+): z.infer<typeof taskInputSchema> {
+  const request = taskRequestSchema.parse(input);
+  return {
+    projectId: request.projectId,
+    title: deriveTaskTitle(request.request),
+    initialRequest: request.request,
+    type: "feature",
+    priority: "medium",
+    baseBranch: defaultBranch,
+  };
+}
+
+export function deriveTaskTitle(request: string): string {
+  const firstLine = request
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .find(Boolean);
+  if (!firstLine) throw new Error("Task request cannot be empty");
+  return firstLine.replace(/^#{1,6}\s+/, "").slice(0, 160);
+}
 
 export async function createTask(input: z.infer<typeof taskInputSchema>, files: File[]) {
   const values = taskInputSchema.parse(input);

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { authenticate, createSession } from "@/server/auth";
-import { formRedirect, isFormSubmission, readAuthBody } from "@/server/auth-request";
+import { formRedirect, isFormSubmission, readRequestBody } from "@/server/form-request";
 import { assertMutationOrigin } from "@/server/security";
 
 const bodySchema = z.object({ password: z.string().min(1).max(256) });
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   const formSubmission = isFormSubmission(request);
   try {
     assertMutationOrigin(request);
-    const { password } = bodySchema.parse(await readAuthBody(request));
+    const { password } = bodySchema.parse(await readRequestBody(request));
     const result = await authenticate(password);
     if (result.status === "rate_limited") {
       const retryHeaders = { "Retry-After": String(result.retryAfterSeconds) };

@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { createOwner, createSession, hasOwner } from "@/server/auth";
-import { formRedirect, isFormSubmission, readAuthBody } from "@/server/auth-request";
 import { database } from "@/server/database";
+import { formRedirect, isFormSubmission, readRequestBody } from "@/server/form-request";
 import { assertMutationOrigin } from "@/server/security";
 import { users } from "@relay/db";
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
         ? formRedirect("/login")
         : NextResponse.json({ error: "Relay is already set up" }, { status: 409 });
     }
-    const { password } = bodySchema.parse(await readAuthBody(request));
+    const { password } = bodySchema.parse(await readRequestBody(request));
     await createOwner(password);
     const owner = database().db.select({ id: users.id }).from(users).get();
     if (!owner) throw new Error("Owner setup failed");

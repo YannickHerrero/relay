@@ -1555,6 +1555,22 @@ textarea.field {
   font-size: 11px;
 }
 
+.relay-failure-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.relay-task-route-error {
+  margin: 0;
+  border-top: 1px solid var(--relay-border);
+  background: var(--relay-danger-soft);
+  color: var(--relay-danger);
+  padding: 9px 28px;
+  font-size: 11px;
+}
+
 .relay-task-tabs {
   display: flex;
   overflow: auto;

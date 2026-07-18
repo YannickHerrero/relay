@@ -1,4 +1,11 @@
-import { ArrowLeft, CircleAlert, GitCommitHorizontal, Paperclip, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft,
+  CircleAlert,
+  GitCommitHorizontal,
+  Paperclip,
+  RotateCcw,
+  ShieldCheck,
+} from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -65,10 +72,11 @@ export default async function TaskDetailPage({
   searchParams,
 }: {
   params: Promise<{ taskId: string }>;
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; error?: string }>;
 }) {
   const { taskId } = await params;
-  const requestedTab = (await searchParams).tab;
+  const query = await searchParams;
+  const requestedTab = query.tab;
   const tab: Tab = tabs.some(([id]) => id === requestedTab) ? (requestedTab as Tab) : "overview";
   const { db } = database();
   const row = db
@@ -207,13 +215,29 @@ export default async function TaskDetailPage({
           </div>
           {row.task.stage === "implementation" ? (
             <ImplementationControls taskId={taskId} status={row.task.runtimeStatus} />
-          ) : row.task.runtimeStatus === "blocked" || row.task.runtimeStatus === "failed" ? (
+          ) : row.task.runtimeStatus === "failed" ? (
+            <div className="relay-failure-actions">
+              <div className="relay-task-alert">
+                <CircleAlert size={14} /> {row.task.blockedReason ?? "Intervention required"}
+              </div>
+              <form action={`/api/tasks/${taskId}/retry`} method="post">
+                <button className="button button-primary">
+                  <RotateCcw size={13} /> Retry task
+                </button>
+              </form>
+            </div>
+          ) : row.task.runtimeStatus === "blocked" ? (
             <div className="relay-task-alert">
               <CircleAlert size={14} /> {row.task.blockedReason ?? "Intervention required"}
             </div>
           ) : null}
         </div>
       </header>
+      {query.error === "retry-failed" ? (
+        <p className="relay-task-route-error" role="alert">
+          Unable to retry this task. Confirm Codex is authenticated and try again.
+        </p>
+      ) : null}
       <nav className="relay-task-tabs" aria-label="Task details">
         {tabs.map(([id, label]) => (
           <Link className={tab === id ? "active" : ""} href={`/tasks/${taskId}?tab=${id}`} key={id}>

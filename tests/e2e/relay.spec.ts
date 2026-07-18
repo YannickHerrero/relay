@@ -1,7 +1,10 @@
+import { randomUUID } from "node:crypto";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
+import { createDatabase, orchestrationJobs, tasks } from "@relay/db";
+import { and, eq, inArray } from "drizzle-orm";
 
 const ownerPassword = "1234";
 
@@ -83,11 +86,11 @@ test.describe.serial("Relay owner workflow", () => {
       await page.goto("/tasks/new");
       await expect(page.getByLabel("Project")).toBeVisible();
       await page.getByLabel("Project").selectOption({ label: "relay-fixture" });
-      await page
-        .getByLabel("Task request")
-        .fill(
-          "Keep readers positioned during definitions\n\nDefinitions should feel faster and the reader must not lose their position.",
-        );
+      const projectId = await page.getByLabel("Project").inputValue();
+      const creationKey = await page.locator('input[name="creationKey"]').inputValue();
+      const taskRequest =
+        "Keep readers positioned during definitions\n\nDefinitions should feel faster and the reader must not lose their position.";
+      await page.getByLabel("Task request").fill(taskRequest);
       await page.getByLabel("Add files").setInputFiles({
         name: "evidence.txt",
         mimeType: "text/plain",
@@ -101,6 +104,16 @@ test.describe.serial("Relay owner workflow", () => {
       await expect(page.getByText("Definitions should feel faster")).toBeVisible();
 
       const taskPath = new URL(page.url()).pathname;
+      const duplicate = await context.request.post("/api/tasks", {
+        headers: {
+          accept: "application/json",
+          origin: new URL(page.url()).origin,
+        },
+        multipart: { creationKey, projectId, request: taskRequest },
+      });
+      expect(duplicate.status()).toBe(201);
+      expect((await duplicate.json()).id).toBe(taskPath.split("/").at(-1));
+
       await page.goto(`${taskPath}?tab=tests`);
       await expect(page.getByRole("link", { name: "evidence.txt" })).toBeVisible();
 
@@ -110,10 +123,74 @@ test.describe.serial("Relay owner workflow", () => {
       );
 
       await page.goto("/board");
-      await expect(page.getByRole("link", { name: /Keep readers positioned/ })).toBeVisible();
+      await expect(page.getByRole("link", { name: /Keep readers positioned/ })).toHaveCount(1);
     } finally {
       await context.close();
     }
+  });
+
+  test("retries and safely deletes a failed task", async ({ page }) => {
+    await signIn(page);
+    const relayDatabase = createDatabase(join(process.cwd(), ".relay-e2e-data", "relay.db"));
+    const existingTask = relayDatabase.db.select().from(tasks).get();
+    expect(existingTask).toBeTruthy();
+    const response = await page.request.post("/api/tasks", {
+      headers: { accept: "application/json", origin: new URL(page.url()).origin },
+      multipart: {
+        creationKey: randomUUID(),
+        projectId: existingTask!.projectId,
+        request: "Disposable failed task",
+      },
+    });
+    expect(response.status()).toBe(201);
+    const taskId = (await response.json()).id as string;
+    const now = new Date().toISOString();
+    relayDatabase.db
+      .update(orchestrationJobs)
+      .set({ status: "failed", error: "Fixture failure", finishedAt: now })
+      .where(eq(orchestrationJobs.taskId, taskId))
+      .run();
+    relayDatabase.db
+      .update(tasks)
+      .set({ runtimeStatus: "failed", blockedReason: "Fixture failure", updatedAt: now })
+      .where(eq(tasks.id, taskId))
+      .run();
+
+    await page.goto(`/tasks/${taskId}`);
+    await page.getByRole("button", { name: "Retry task" }).click();
+    await expect(page).toHaveURL(new RegExp(`/tasks/${taskId}\\?tab=conversation$`));
+    expect(
+      relayDatabase.db
+        .select()
+        .from(orchestrationJobs)
+        .where(eq(orchestrationJobs.taskId, taskId))
+        .all()
+        .filter((job) => job.status === "queued"),
+    ).toHaveLength(1);
+
+    relayDatabase.db
+      .update(orchestrationJobs)
+      .set({ status: "failed", error: "Fixture failure", finishedAt: now })
+      .where(
+        and(
+          eq(orchestrationJobs.taskId, taskId),
+          inArray(orchestrationJobs.status, ["queued", "running"]),
+        ),
+      )
+      .run();
+    relayDatabase.db
+      .update(tasks)
+      .set({ runtimeStatus: "failed", blockedReason: "Fixture failure", updatedAt: now })
+      .where(eq(tasks.id, taskId))
+      .run();
+    await page.reload();
+    await page.getByRole("link", { name: "Delete" }).click();
+    await expect(page.getByRole("heading", { name: "Delete task?" })).toBeVisible();
+    await page.getByLabel(/I understand this permanently deletes/).check();
+    await page.getByRole("button", { name: "Delete task" }).click();
+    await expect(page).toHaveURL(/\/board$/);
+    expect(relayDatabase.db.select().from(tasks).where(eq(tasks.id, taskId)).get()).toBeUndefined();
+    relayDatabase.sqlite.close();
   });
 
   test("keeps approvals and navigation usable on a phone", async ({ page }) => {

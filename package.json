@@ -19,7 +19,7 @@
     "start:services": "pnpm --parallel --filter @relay/web --filter @relay/worker run start",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
+    "test:e2e": "node scripts/run-e2e.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {

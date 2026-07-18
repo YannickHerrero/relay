@@ -5,7 +5,7 @@ do not commit/
 
 # Dependencies and build output
 node_modules/
-.next/
+.next*/
 dist/
 coverage/
 playwright-report/

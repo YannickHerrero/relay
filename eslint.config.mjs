@@ -4,7 +4,7 @@ import tseslint from "typescript-eslint";
 export default tseslint.config(
   {
     ignores: [
-      "**/.next/**",
+      "**/.next*/**",
       "**/coverage/**",
       "**/dist/**",
       "**/node_modules/**",
@@ -15,7 +15,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.cjs"],
+    files: ["**/*.{cjs,mjs}"],
     languageOptions: {
       globals: {
         __dirname: "readonly",

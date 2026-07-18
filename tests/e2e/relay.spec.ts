@@ -73,23 +73,47 @@ test.describe.serial("Relay owner workflow", () => {
     }
   });
 
-  test("creates a vague request and preserves it on the board", async ({ page }) => {
-    await signIn(page);
-    await page.goto("/tasks/new");
-    await page.getByLabel("Title").fill("Keep readers positioned during definitions");
-    await page
-      .getByLabel("Initial request")
-      .fill("Definitions should feel faster and the reader must not lose their position.");
-    await page.getByLabel("Priority").selectOption("high");
-    await page.getByRole("button", { name: "Create and start refinement" }).click();
-    await expect(page).toHaveURL(/\/tasks\/[a-f0-9-]+\?tab=conversation$/);
-    await expect(
-      page.getByRole("heading", { name: "Keep readers positioned during definitions" }),
-    ).toBeVisible();
-    await expect(page.getByText("Definitions should feel faster")).toBeVisible();
+  test("creates a streamlined task without client JavaScript", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Owner password").fill(ownerPassword);
+      await page.getByRole("button", { name: "Sign in to Relay" }).click();
+      await page.goto("/tasks/new");
+      await expect(page.getByLabel("Project")).toBeVisible();
+      await page.getByLabel("Project").selectOption({ label: "relay-fixture" });
+      await page
+        .getByLabel("Task request")
+        .fill(
+          "Keep readers positioned during definitions\n\nDefinitions should feel faster and the reader must not lose their position.",
+        );
+      await page.getByLabel("Add files").setInputFiles({
+        name: "evidence.txt",
+        mimeType: "text/plain",
+        buffer: Buffer.from("Reader position evidence"),
+      });
+      await page.getByRole("button", { name: "Start task" }).click();
+      await expect(page).toHaveURL(/\/tasks\/[a-f0-9-]+\?tab=conversation$/);
+      await expect(
+        page.getByRole("heading", { name: "Keep readers positioned during definitions" }),
+      ).toBeVisible();
+      await expect(page.getByText("Definitions should feel faster")).toBeVisible();
 
-    await page.goto("/board");
-    await expect(page.getByRole("link", { name: /Keep readers positioned/ })).toBeVisible();
+      const taskPath = new URL(page.url()).pathname;
+      await page.goto(`${taskPath}?tab=tests`);
+      await expect(page.getByRole("link", { name: "evidence.txt" })).toBeVisible();
+
+      await page.goto("/tasks/new");
+      await expect(page.getByLabel("Project").locator("option:checked")).toHaveText(
+        "relay-fixture",
+      );
+
+      await page.goto("/board");
+      await expect(page.getByRole("link", { name: /Keep readers positioned/ })).toBeVisible();
+    } finally {
+      await context.close();
+    }
   });
 
   test("keeps approvals and navigation usable on a phone", async ({ page }) => {
@@ -170,6 +194,28 @@ test.describe.serial("Relay owner workflow", () => {
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
         `${name} project creation should not overflow`,
       ).toBe(true);
+    }
+  });
+
+  test("keeps the streamlined task composer responsive", async ({ page }, testInfo) => {
+    await signIn(page);
+    for (const [name, width, height] of [
+      ["phone", 390, 844],
+      ["desktop", 1440, 900],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto("/tasks/new");
+      await expect(page.getByRole("heading", { name: "What should Relay work on?" })).toBeVisible();
+      await expect(page.getByLabel("Project")).toBeVisible();
+      await expect(page.getByLabel("Task request")).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `${name} task composer should not overflow`,
+      ).toBe(true);
+      await testInfo.attach(`new-task-${name}`, {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
     }
   });
 

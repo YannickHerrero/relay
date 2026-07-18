@@ -7,6 +7,8 @@ import {
   agentRuns,
   artifacts,
   commandRuns,
+  deploymentSteps,
+  deployments,
   messages,
   notifications,
   planComments,
@@ -25,6 +27,7 @@ import {
 } from "@relay/db";
 import type { AgentAdapter, AgentEvent } from "@relay/agent";
 import {
+  diagnosisOutputSchema,
   implementationOutputSchema,
   parseStructuredOutput,
   planningOutputSchema,
@@ -33,9 +36,11 @@ import {
 } from "@relay/agent";
 import {
   assertTransition,
+  deploymentRecipeSchema,
   implementationPlanSchema,
   refinedRequirementSchema,
   type AgentRole,
+  type DeploymentRecipe,
   type ImplementationPlan,
   type ProjectConfig,
 } from "@relay/domain";
@@ -99,6 +104,13 @@ export class WorkflowEngine {
     }
     if (job.type === "tests.rerun") {
       await this.rerunValidation(job.taskId);
+      return;
+    }
+    if (job.type === "deployment.run") {
+      const deploymentId = job.payload.deploymentId;
+      if (typeof deploymentId !== "string")
+        throw new Error("Deployment job is missing its deployment id");
+      await this.runDeployment(job.taskId, deploymentId);
       return;
     }
     throw new Error(`Unsupported orchestration job: ${job.type}`);
@@ -688,6 +700,261 @@ export class WorkflowEngine {
       .run();
   }
 
+  private async runDeployment(taskId: string, deploymentId: string): Promise<void> {
+    const { db, sqlite } = this.options.database;
+    const deployment = db.select().from(deployments).where(eq(deployments.id, deploymentId)).get();
+    const task = db.select().from(tasks).where(eq(tasks.id, taskId)).get();
+    if (!deployment || !task || task.stage !== "deploying" || !task.worktreePath) {
+      throw new Error("Deployment is missing or is not ready to run");
+    }
+    const recipe = deploymentRecipeSchema.parse(deployment.recipeSnapshot);
+    const worktree = new GitRepository(task.worktreePath);
+    await worktree.assertClean();
+    if ((await worktree.head()) !== deployment.commitSha) {
+      throw new Error("Worktree HEAD no longer matches the confirmed deployment SHA");
+    }
+    if (recipe.kind === "git_push" && !task.taskBranch) {
+      throw new Error("Git push requires a task branch");
+    }
+    const commands =
+      recipe.kind === "git_push"
+        ? [`git push --set-upstream origin ${task.taskBranch}`]
+        : recipe.commands;
+    const now = new Date().toISOString();
+    const steps = [
+      {
+        id: randomUUID(),
+        deploymentId,
+        order: 1,
+        label: "Repository validation",
+        command: null,
+        status: "succeeded",
+      },
+      ...commands.map((command, index) => ({
+        id: randomUUID(),
+        deploymentId,
+        order: index + 2,
+        label: deploymentStepLabel(command, index),
+        command,
+        status: "pending",
+      })),
+    ];
+    sqlite.transaction(() => {
+      db.delete(deploymentSteps).where(eq(deploymentSteps.deploymentId, deploymentId)).run();
+      db.insert(deploymentSteps)
+        .values(
+          steps.map((step) => ({
+            ...step,
+            startedAt: step.order === 1 ? now : null,
+            completedAt: step.order === 1 ? now : null,
+          })),
+        )
+        .run();
+      db.update(deployments)
+        .set({ status: "running", startedAt: now, completedAt: null, diagnosis: null })
+        .where(eq(deployments.id, deploymentId))
+        .run();
+      db.update(tasks)
+        .set({
+          runtimeStatus: "agent_running",
+          blockedReason: null,
+          updatedAt: now,
+          lastActivityAt: now,
+        })
+        .where(eq(tasks.id, taskId))
+        .run();
+      db.insert(taskEvents)
+        .values({
+          taskId,
+          type: "deployment.started",
+          actor: "system",
+          payload: { deploymentId, recipeId: recipe.id, commitSha: deployment.commitSha },
+          createdAt: now,
+        })
+        .run();
+    })();
+
+    let failureOutput = "";
+    for (const step of steps.filter((step) => step.command)) {
+      const result = await this.runDeploymentCommand(
+        taskId,
+        deploymentId,
+        step.id,
+        step.command!,
+        task.worktreePath,
+      );
+      if (!result.passed) {
+        failureOutput = result.output;
+        break;
+      }
+    }
+    if (failureOutput) {
+      await this.failDeployment(task, deploymentId, recipe, failureOutput);
+      return;
+    }
+
+    assertTransition("deploying", "done", "system");
+    const completedAt = new Date().toISOString();
+    sqlite.transaction(() => {
+      db.update(deployments)
+        .set({ status: "succeeded", resultUrl: recipe.resultUrlPattern ?? null, completedAt })
+        .where(eq(deployments.id, deploymentId))
+        .run();
+      db.update(tasks)
+        .set({
+          stage: "done",
+          runtimeStatus: "idle",
+          version: task.version + 1,
+          updatedAt: completedAt,
+          lastActivityAt: completedAt,
+        })
+        .where(eq(tasks.id, taskId))
+        .run();
+      db.insert(taskEvents)
+        .values({
+          taskId,
+          type: "deployment.succeeded",
+          actor: "system",
+          payload: { deploymentId, resultUrl: recipe.resultUrlPattern },
+          createdAt: completedAt,
+        })
+        .run();
+      db.insert(notifications)
+        .values({
+          id: randomUUID(),
+          taskId,
+          type: "deployment.succeeded",
+          title: "Deployment succeeded",
+          body: task.title,
+          createdAt: completedAt,
+        })
+        .run();
+    })();
+  }
+
+  private async runDeploymentCommand(
+    taskId: string,
+    deploymentId: string,
+    stepId: string,
+    command: string,
+    cwd: string,
+  ): Promise<{ passed: boolean; output: string }> {
+    const { db } = this.options.database;
+    const commandId = randomUUID();
+    const startedAt = new Date().toISOString();
+    db.update(deploymentSteps)
+      .set({ status: "running", startedAt })
+      .where(eq(deploymentSteps.id, stepId))
+      .run();
+    db.insert(commandRuns)
+      .values({ id: commandId, taskId, deploymentId, command, cwd, status: "running", startedAt })
+      .run();
+    let result;
+    try {
+      result = await runCommand({
+        command,
+        cwd,
+        timeoutMs: Number(process.env.RELAY_DEPLOYMENT_TIMEOUT_MS ?? 3_600_000),
+        onStart: (pid) => {
+          db.update(commandRuns).set({ pid }).where(eq(commandRuns.id, commandId)).run();
+        },
+      });
+    } catch (error) {
+      result = {
+        exitCode: null,
+        stdout: "",
+        stderr: error instanceof Error ? (error.stack ?? error.message) : String(error),
+        durationMs: 0,
+        timedOut: false,
+        aborted: false,
+      };
+    }
+    const passed = result.exitCode === 0 && !result.timedOut && !result.aborted;
+    const completedAt = new Date().toISOString();
+    const logDir = join(this.options.dataDir, "artifacts", taskId, "deployments", deploymentId);
+    const logPath = join(logDir, `${stepId}.log`);
+    await mkdir(logDir, { recursive: true });
+    const output = `${result.stdout}${result.stderr ? `\n[stderr]\n${result.stderr}` : ""}`;
+    await writeFile(logPath, output, { mode: 0o600 });
+    db.update(commandRuns)
+      .set({ status: passed ? "passed" : "failed", exitCode: result.exitCode, completedAt })
+      .where(eq(commandRuns.id, commandId))
+      .run();
+    db.update(deploymentSteps)
+      .set({ status: passed ? "succeeded" : "failed", completedAt })
+      .where(eq(deploymentSteps.id, stepId))
+      .run();
+    db.insert(artifacts)
+      .values({
+        id: randomUUID(),
+        taskId,
+        runId: deploymentId,
+        type: "log",
+        path: logPath,
+        mimeType: "text/plain",
+        metadata: { command, deploymentId },
+        createdAt: completedAt,
+      })
+      .run();
+    return { passed, output };
+  }
+
+  private async failDeployment(
+    task: typeof tasks.$inferSelect,
+    deploymentId: string,
+    recipe: DeploymentRecipe,
+    output: string,
+  ): Promise<void> {
+    const { db, sqlite } = this.options.database;
+    let diagnosis = "Deployment command failed. Inspect the captured log before retrying.";
+    try {
+      const result = await this.runAgentTurn(
+        task.id,
+        "deployment-diagnostician",
+        task.worktreePath!,
+        `Analyze this failed ${recipe.label} deployment. Do not modify files or rerun commands.\n\n${output.slice(-20_000)}\n\nReturn likelyCause, evidence, and suggestedActions as JSON.`,
+      );
+      diagnosis = parseStructuredOutput(result, diagnosisOutputSchema).likelyCause;
+    } catch {
+      // The original deployment failure remains authoritative when diagnosis is unavailable.
+    }
+    const now = new Date().toISOString();
+    sqlite.transaction(() => {
+      db.update(deployments)
+        .set({ status: "failed", diagnosis, completedAt: now })
+        .where(eq(deployments.id, deploymentId))
+        .run();
+      db.update(tasks)
+        .set({
+          runtimeStatus: "failed",
+          blockedReason: diagnosis,
+          updatedAt: now,
+          lastActivityAt: now,
+        })
+        .where(eq(tasks.id, task.id))
+        .run();
+      db.insert(taskEvents)
+        .values({
+          taskId: task.id,
+          type: "deployment.failed",
+          actor: "system",
+          payload: { deploymentId, diagnosis },
+          createdAt: now,
+        })
+        .run();
+      db.insert(notifications)
+        .values({
+          id: randomUUID(),
+          taskId: task.id,
+          type: "deployment.failed",
+          title: "Deployment failed",
+          body: diagnosis,
+          createdAt: now,
+        })
+        .run();
+    })();
+  }
+
   private async ensureWorktree(
     task: typeof tasks.$inferSelect,
     repositoryPath: string,
@@ -1021,6 +1288,11 @@ export class WorkflowEngine {
       })
       .run();
   }
+}
+
+function deploymentStepLabel(command: string, index: number): string {
+  const executable = command.trim().split(/\s+/)[0] ?? "command";
+  return `${index + 1}. Run ${executable}`;
 }
 
 class AgentStoppedError extends Error {

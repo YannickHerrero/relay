@@ -5,7 +5,12 @@ import { join, resolve } from "node:path";
 import { CodexAdapter } from "@relay/agent";
 import { FakeAgentAdapter } from "@relay/agent/testing";
 import { createDatabase } from "@relay/db";
-import { DurableJobQueue, WorkflowEngine, type OrchestrationJob } from "@relay/orchestrator";
+import {
+  DurableJobQueue,
+  NonRetryableJobError,
+  WorkflowEngine,
+  type OrchestrationJob,
+} from "@relay/orchestrator";
 
 const dataDir = resolveDataDir();
 const database = createDatabase(join(dataDir, "relay.db"));
@@ -64,7 +69,7 @@ async function processJob(job: OrchestrationJob): Promise<void> {
     queue.complete(job.id);
   } catch (error) {
     console.error(`[Relay worker] ${job.type} failed`, error);
-    queue.fail(job, error);
+    queue.fail(job, error, { retryable: !(error instanceof NonRetryableJobError) });
     engine.markJobFailure(job, error);
   } finally {
     clearInterval(heartbeat);

@@ -108,8 +108,8 @@ export class DurableJobQueue {
       .run(new Date().toISOString(), jobId, this.owner);
   }
 
-  fail(job: OrchestrationJob, error: unknown): void {
-    const exhausted = job.attempts >= job.maxAttempts;
+  fail(job: OrchestrationJob, error: unknown, options: { retryable?: boolean } = {}): void {
+    const exhausted = options.retryable === false || job.attempts >= job.maxAttempts;
     const availableAt = new Date(Date.now() + Math.min(60_000, 1_000 * 2 ** job.attempts));
     this.database.sqlite
       .prepare(

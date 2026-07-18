@@ -1243,9 +1243,15 @@ export class WorkflowEngine {
     db.update(agentRuns).set({ sessionId: session.id }).where(eq(agentRuns.id, runId)).run();
 
     let output = "";
+    let lastAgentError: string | undefined;
     try {
       for await (const event of this.options.agent.runTurn({ sessionId: session.id, prompt })) {
         this.recordAgentEvent(runId, taskId, event);
+        if (event.type === "error") {
+          lastAgentError = event.message;
+          if (isAuthenticationError(event.message))
+            throw new NonRetryableJobError(codexLoginMessage());
+        }
         if (role === "implementer") {
           const runtimeStatus = db
             .select({ status: tasks.runtimeStatus })
@@ -1258,6 +1264,13 @@ export class WorkflowEngine {
           }
         }
         if (event.type === "turn.completed") output = event.output;
+      }
+      if (!output.trim()) {
+        throw new Error(
+          lastAgentError
+            ? `Agent turn failed: ${lastAgentError}`
+            : "Agent completed without output",
+        );
       }
       db.update(agentRuns)
         .set({ status: "completed", completedAt: new Date().toISOString() })
@@ -1293,6 +1306,21 @@ export class WorkflowEngine {
 function deploymentStepLabel(command: string, index: number): string {
   const executable = command.trim().split(/\s+/)[0] ?? "command";
   return `${index + 1}. Run ${executable}`;
+}
+
+export class NonRetryableJobError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NonRetryableJobError";
+  }
+}
+
+function isAuthenticationError(message: string): boolean {
+  return /\b401\b|unauthorized|missing bearer|not logged in|authentication/i.test(message);
+}
+
+function codexLoginMessage(): string {
+  return "Codex is not authenticated. Run 'pnpm --filter @relay/agent exec codex login --device-auth', then retry the task.";
 }
 
 class AgentStoppedError extends Error {

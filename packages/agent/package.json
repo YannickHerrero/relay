@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@openai/codex": "^0.144.5",
     "@relay/domain": "workspace:*",
     "zod": "^4.0.0"
   },

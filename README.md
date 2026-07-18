@@ -39,12 +39,16 @@ A dedicated local macOS account is strongly recommended. See [`docs/security.md`
 ```bash
 pnpm install
 cp .env.example .env
-pnpm build
-set -a; source .env; set +a
-pnpm start
+make dev-local
 ```
 
-Open `http://localhost:3000`, create the single owner password, and register a Git repository.
+Relay reads `.env` automatically. Open the `RELAY_ORIGIN` address, create the single owner password, and register a Git repository. To expose development privately through Tailscale, set `RELAY_ORIGIN` to this Mac's Tailscale HTTPS URL, enable secure cookies, and run:
+
+```bash
+make dev
+```
+
+Use `make unserve` when Relay should no longer be available through Tailscale.
 
 Authenticate Codex under the same macOS account before starting real agent work:
 
@@ -86,7 +90,16 @@ Configuration is validated and versioned when a project is registered or refresh
 ## Development
 
 ```bash
-pnpm dev
+make dev          # Load .env, configure Tailscale Serve, and start web + worker
+make dev-local    # Load .env and start web + worker locally
+make serve-status
+make unserve
+make check
+```
+
+`pnpm dev` and `pnpm start` also load `.env` automatically, but do not change Tailscale Serve. Run the individual verification commands when needed:
+
+```bash
 pnpm lint
 pnpm typecheck
 pnpm test

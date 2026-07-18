@@ -3,12 +3,15 @@
 ## Environment
 
 ```bash
+PORT=43127
 RELAY_DATA_DIR=$HOME/.relay
 RELAY_ORIGIN=https://relay.<tailnet>.ts.net
 RELAY_CODEX_COMMAND=codex
 RELAY_WORKER_CONCURRENCY=2
 RELAY_SECURE_COOKIES=true
 ```
+
+`pnpm dev` and `pnpm start` load the root `.env` file automatically. `RELAY_ORIGIN` must exactly match the address used in the browser.
 
 Optional command timeout values are milliseconds:
 
@@ -41,15 +44,24 @@ pm2 logs relay-worker
 
 Relay's top bar reports the durable worker offline after a stale heartbeat.
 
-## Tailscale
+## Tailscale development
 
-Keep Next.js bound to localhost, then expose it privately:
+Set `RELAY_ORIGIN` to the HTTPS URL for the current Mac and set `RELAY_SECURE_COOKIES=true`. Then start both Relay processes and Tailscale Serve with one command:
 
 ```bash
-sudo tailscale serve --bg http://127.0.0.1:3000
+make dev
 ```
 
-Use the HTTPS URL shown by `tailscale serve status` as `RELAY_ORIGIN`. Confirm that secure cookies are enabled before relying on remote access.
+The web process remains bound to `127.0.0.1`; Tailscale is the only remote entry point. The Make targets are also available separately:
+
+```bash
+make dev-local     # Start Relay without changing Serve
+make serve         # Configure Serve only
+make serve-status  # Inspect the active configuration
+make unserve       # Remove Relay's Serve configuration
+```
+
+`make serve` is idempotent and refuses to replace a configuration it did not create. Tailscale Serve remains active after the development process stops, so run `make unserve` when remote access is no longer needed. Use the HTTPS URL shown by `make serve-status` in the browser.
 
 ## Backups
 

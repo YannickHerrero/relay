@@ -128,6 +128,33 @@ test.describe.serial("Relay owner workflow", () => {
     }
   });
 
+  test("keeps project discovery and creation responsive", async ({ page }, testInfo) => {
+    await signIn(page);
+    for (const [name, width, height] of [
+      ["phone", 390, 844],
+      ["desktop", 1440, 900],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto("/projects");
+      await expect(page.getByRole("heading", { name: "Discovered folders" })).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `${name} project discovery should not overflow`,
+      ).toBe(true);
+      await testInfo.attach(`projects-${name}`, {
+        body: await page.screenshot({ fullPage: true }),
+        contentType: "image/png",
+      });
+
+      await page.goto("/projects/new");
+      await expect(page.getByRole("heading", { name: "Create a project" })).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        `${name} project creation should not overflow`,
+      ).toBe(true);
+    }
+  });
+
   test("rate limits repeated owner login failures", async ({ page }) => {
     await page.goto("/login");
     const result = await page.evaluate(async (password) => {

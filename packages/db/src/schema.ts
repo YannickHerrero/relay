@@ -309,6 +309,18 @@ export const reviewComments = sqliteTable("review_comments", {
   createdAt: text("created_at").notNull(),
 });
 
+export const deploymentConfirmations = sqliteTable("deployment_confirmations", {
+  id: text("id").primaryKey(),
+  taskId: text("task_id")
+    .notNull()
+    .references(() => tasks.id, { onDelete: "cascade" }),
+  recipeId: text("recipe_id").notNull(),
+  commitSha: text("commit_sha").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  usedAt: text("used_at"),
+  createdAt: text("created_at").notNull(),
+});
+
 export const deployments = sqliteTable("deployments", {
   id: text("id").primaryKey(),
   taskId: text("task_id")

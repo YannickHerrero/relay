@@ -73,6 +73,21 @@ CREATE INDEX task_events_task_idx ON task_events(task_id, id);
 CREATE TABLE notifications (id TEXT PRIMARY KEY, task_id TEXT REFERENCES tasks(id) ON DELETE CASCADE, type TEXT NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL, read_at TEXT, created_at TEXT NOT NULL);
 `,
   },
+  {
+    id: 2,
+    name: "deployment-confirmations",
+    sql: `
+CREATE TABLE deployment_confirmations (
+  id TEXT PRIMARY KEY,
+  task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+  recipe_id TEXT NOT NULL,
+  commit_sha TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used_at TEXT,
+  created_at TEXT NOT NULL
+);
+`,
+  },
 ] as const;
 
 function migrate(sqlite: BetterSqlite3.Database): void {

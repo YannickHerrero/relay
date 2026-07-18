@@ -16,6 +16,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import { NotificationCenter } from "./notification-center";
+
 const navigation = [
   { href: "/board", label: "Board", icon: Columns3 },
   { href: "/activity", label: "Activity", icon: Activity },
@@ -57,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link href="/projects" className="button">
             <Settings2 size={14} /> Configure
           </Link>
+          <NotificationCenter />
           <div className="relay-avatar" aria-label="Owner account">
             R
           </div>

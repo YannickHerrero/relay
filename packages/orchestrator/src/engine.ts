@@ -65,9 +65,29 @@ export class WorkflowEngine {
       await this.runPlanning(job.taskId);
       return;
     }
-    if (job.type === "implementation.start" || job.type === "implementation.resume") {
+    if (
+      job.type === "implementation.start" ||
+      job.type === "implementation.resume" ||
+      job.type === "implementation.instruction"
+    ) {
+      if (job.type === "implementation.instruction") {
+        const now = new Date().toISOString();
+        this.options.database.db
+          .update(tasks)
+          .set({
+            runtimeStatus: "agent_running",
+            blockedReason: null,
+            updatedAt: now,
+            lastActivityAt: now,
+          })
+          .where(eq(tasks.id, job.taskId))
+          .run();
+      }
       try {
-        await this.runImplementation(job.taskId);
+        await this.runImplementation(
+          job.taskId,
+          typeof job.payload.instruction === "string" ? job.payload.instruction : undefined,
+        );
       } catch (error) {
         if (!(error instanceof AgentStoppedError)) throw error;
       }
@@ -304,7 +324,7 @@ export class WorkflowEngine {
     })();
   }
 
-  private async runImplementation(taskId: string): Promise<void> {
+  private async runImplementation(taskId: string, instruction?: string): Promise<void> {
     const { db, sqlite } = this.options.database;
     const row = db
       .select({ task: tasks, project: projects })
@@ -355,7 +375,13 @@ export class WorkflowEngine {
         taskId,
         "implementer",
         worktree.root,
-        buildImplementationPrompt(specification, plan, plannedCommit, resumedChanges.length > 0),
+        buildImplementationPrompt(
+          specification,
+          plan,
+          plannedCommit,
+          resumedChanges.length > 0,
+          instruction,
+        ),
         config,
       );
       const summary = parseStructuredOutput(output, implementationOutputSchema);
@@ -1009,6 +1035,7 @@ function buildImplementationPrompt(
   plan: ImplementationPlan,
   commit: ImplementationPlan["commits"][number],
   resuming: boolean,
+  instruction?: string,
 ): string {
   return `${resuming ? "Resume the interrupted work already present in the worktree. Inspect it before editing.\n" : ""}Implement only approved commit ${commit.order} of ${plan.commits.length}.
 Do not start work belonging to later commits. Do not create a Git commit; Relay owns the commit boundary.
@@ -1019,6 +1046,7 @@ ${JSON.stringify(specification, null, 2)}
 Approved plan item:
 ${JSON.stringify(commit, null, 2)}
 
+${instruction ? `Additional user instruction classified as a minor correction:\n${instruction}\n` : ""}
 Run the checks relevant to this item while working. Relay will independently run the approved test commands.
 Return JSON with exactly: summary (string), deviations (string array), manualChecks (string array).`;
 }

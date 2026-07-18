@@ -2,8 +2,8 @@
 set -uo pipefail
 
 root_directory="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-service_command="$root_directory/scripts/relay-service.sh"
-tailscale_command="$root_directory/scripts/relay-tailscale.sh"
+service_command="${RELAY_SERVICE_COMMAND:-$root_directory/scripts/relay-service.sh}"
+tailscale_command="${RELAY_TAILSCALE_COMMAND:-$root_directory/scripts/relay-tailscale.sh}"
 pnpm_command="${RELAY_PNPM_COMMAND:-$(command -v pnpm || true)}"
 
 start_relay() {

@@ -5,16 +5,24 @@ import {
   agentRuns,
   messages,
   notifications,
+  planComments,
+  planVersions,
   projects,
   requirementDrafts,
+  specificationVersions,
   taskEvents,
   tasks,
   type RelayDatabase,
 } from "@relay/db";
 import type { AgentAdapter, AgentEvent } from "@relay/agent";
-import { parseStructuredOutput, refinementOutputSchema, systemPromptFor } from "@relay/agent";
+import {
+  parseStructuredOutput,
+  planningOutputSchema,
+  refinementOutputSchema,
+  systemPromptFor,
+} from "@relay/agent";
 import type { AgentRole } from "@relay/domain";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
 import type { OrchestrationJob } from "./queue";
 
@@ -31,6 +39,10 @@ export class WorkflowEngine {
     if (!job.taskId) throw new Error(`Job ${job.id} requires a task`);
     if (job.type === "refinement.start" || job.type === "refinement.message") {
       await this.runRefinement(job.taskId);
+      return;
+    }
+    if (job.type === "planning.start" || job.type === "planning.revise") {
+      await this.runPlanning(job.taskId);
       return;
     }
     throw new Error(`Unsupported orchestration job: ${job.type}`);
@@ -154,6 +166,108 @@ export class WorkflowEngine {
     })();
   }
 
+  private async runPlanning(taskId: string): Promise<void> {
+    const { db, sqlite } = this.options.database;
+    const row = db
+      .select({ task: tasks, project: projects })
+      .from(tasks)
+      .innerJoin(projects, eq(projects.id, tasks.projectId))
+      .where(and(eq(tasks.id, taskId), eq(tasks.stage, "planning")))
+      .get();
+    if (!row) throw new Error("Planning task is missing or no longer in planning");
+    const specification = db
+      .select()
+      .from(specificationVersions)
+      .where(eq(specificationVersions.taskId, taskId))
+      .orderBy(desc(specificationVersions.version))
+      .get();
+    if (!specification?.approvedAt) throw new Error("Planning requires an approved specification");
+    const previous = db
+      .select()
+      .from(planVersions)
+      .where(eq(planVersions.taskId, taskId))
+      .orderBy(desc(planVersions.version))
+      .get();
+    const comments = previous
+      ? db
+          .select()
+          .from(planComments)
+          .where(eq(planComments.planVersionId, previous.id))
+          .orderBy(planComments.createdAt)
+          .all()
+      : [];
+    const prompt = buildPlanningPrompt(specification.content, previous?.content, comments);
+    const output = await this.runAgentTurn(
+      taskId,
+      "technical-planner",
+      row.project.repositoryPath,
+      prompt,
+    );
+    const planned = parseStructuredOutput(output, planningOutputSchema);
+    const now = new Date().toISOString();
+    const versionId = randomUUID();
+
+    sqlite.transaction(() => {
+      db.insert(planVersions)
+        .values({
+          id: versionId,
+          taskId,
+          version: (previous?.version ?? 0) + 1,
+          parentVersionId: previous?.id ?? null,
+          content: planned.plan,
+          createdAt: now,
+        })
+        .run();
+      if (previous) {
+        db.update(planComments)
+          .set({ resolvedAt: now })
+          .where(eq(planComments.planVersionId, previous.id))
+          .run();
+      }
+      db.update(tasks)
+        .set({
+          runtimeStatus: "waiting_for_user",
+          blockedReason: null,
+          updatedAt: now,
+          lastActivityAt: now,
+        })
+        .where(eq(tasks.id, taskId))
+        .run();
+      db.insert(messages)
+        .values({
+          id: randomUUID(),
+          taskId,
+          role: "agent",
+          content: planned.message,
+          attachments: [],
+          createdAt: now,
+        })
+        .run();
+      db.insert(taskEvents)
+        .values({
+          taskId,
+          type: "plan.ready",
+          actor: "agent",
+          payload: {
+            version: (previous?.version ?? 0) + 1,
+            commits: planned.plan.commits.length,
+          },
+          createdAt: now,
+        })
+        .run();
+      db.insert(notifications)
+        .values({
+          id: randomUUID(),
+          taskId,
+          type: "plan.ready",
+          title: "Plan ready for approval",
+          body: row.task.title,
+          createdAt: now,
+        })
+        .run();
+    })();
+  }
+
   private async runAgentTurn(
     taskId: string,
     role: AgentRole,
@@ -207,6 +321,39 @@ export class WorkflowEngine {
       })
       .run();
   }
+}
+
+function buildPlanningPrompt(
+  specification: unknown,
+  previousPlan: unknown,
+  comments: Array<{ targetType: string; targetId: string | null; content: string }>,
+): string {
+  return `Create or revise the technical implementation plan for this approved Relay requirement.
+Repository access is read-only. Do not modify files.
+
+Approved specification:
+${JSON.stringify(specification, null, 2)}
+
+Previous plan:
+${previousPlan ? JSON.stringify(previousPlan, null, 2) : "No previous plan."}
+
+User feedback:
+${
+  comments.length
+    ? comments
+        .map(
+          (comment) =>
+            `- ${comment.targetType}${comment.targetId ? ` ${comment.targetId}` : ""}: ${comment.content}`,
+        )
+        .join("\n")
+    : "No feedback."
+}
+
+Return JSON with exactly:
+- message: concise summary of the proposed plan or revision
+- plan: the complete ImplementationPlan object
+Every commit must have an id, order, title ready for Git, one goal, expected files, implementationSteps, tests, and dependencies.
+Keep commits small, ordered, atomic, and independently reviewable.`;
 }
 
 function buildRefinementPrompt(

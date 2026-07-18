@@ -16,6 +16,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 
+import { HostStatus } from "./host-status";
 import { NotificationCenter } from "./notification-center";
 
 const navigation = [
@@ -53,9 +54,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </Link>
         <div className="relay-crumb">Local workspace</div>
         <div className="relay-top-actions">
-          <span className="relay-agent-state">
-            <i /> Agent host ready
-          </span>
+          <HostStatus compact />
           <Link href="/projects" className="button">
             <Settings2 size={14} /> Configure
           </Link>
@@ -102,8 +101,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <p className="relay-side-label">Connected host</p>
           <div className="relay-host-card">
             <span className="relay-status-dot" />
-            <strong>Relay host</strong>
-            <small>online · worker observed</small>
+            <HostStatus />
           </div>
         </div>
         <p className="relay-side-note">

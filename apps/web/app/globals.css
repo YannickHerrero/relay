@@ -240,6 +240,10 @@ textarea.field {
   background: var(--relay-accent);
 }
 
+.relay-agent-state i.offline {
+  background: var(--relay-danger);
+}
+
 .relay-notification-center {
   position: relative;
 }

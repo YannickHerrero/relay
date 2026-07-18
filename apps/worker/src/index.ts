@@ -1,3 +1,4 @@
+import { writeFile } from "node:fs/promises";
 import { hostname, homedir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -21,6 +22,19 @@ const active = new Set<Promise<void>>();
 let stopping = false;
 
 console.log(`[Relay worker] ${workerId} started with concurrency ${concurrency}`);
+
+const workerStartedAt = new Date().toISOString();
+const heartbeatFile = join(dataDir, "worker-heartbeat.json");
+async function writeHeartbeat() {
+  await writeFile(
+    heartbeatFile,
+    JSON.stringify({ workerId, startedAt: workerStartedAt, at: new Date().toISOString() }),
+    { mode: 0o600 },
+  );
+}
+await writeHeartbeat();
+const heartbeatWriter = setInterval(() => void writeHeartbeat(), 5_000);
+heartbeatWriter.unref();
 
 const poller = setInterval(() => {
   if (stopping) return;
@@ -58,6 +72,7 @@ async function shutdown(signal: string): Promise<void> {
   if (stopping) return;
   stopping = true;
   clearInterval(poller);
+  clearInterval(heartbeatWriter);
   console.log(`[Relay worker] stopping after ${signal}`);
   await Promise.allSettled(active);
   await agent.close();

@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@openai/codex": "^0.144.5",
     "@relay/agent": "workspace:*",
     "@relay/db": "workspace:*",
     "@relay/orchestrator": "workspace:*",

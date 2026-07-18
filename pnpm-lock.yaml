@@ -86,6 +86,9 @@ importers:
 
   apps/worker:
     dependencies:
+      "@openai/codex":
+        specifier: ^0.144.5
+        version: 0.144.5
       "@relay/agent":
         specifier: workspace:*
         version: link:../../packages/agent

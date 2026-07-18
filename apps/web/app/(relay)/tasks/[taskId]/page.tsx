@@ -259,7 +259,7 @@ export default async function TaskDetailPage({
             />
           ) : null}
           {tab === "execution" ? <Execution runs={runs} events={runEvents} /> : null}
-          {tab === "git" ? <GitEvidence task={row.task} commits={commits} /> : null}
+          {tab === "git" ? <GitEvidence taskId={taskId} task={row.task} commits={commits} /> : null}
           {tab === "tests" ? (
             <TestEvidence tests={tests} artifacts={taskArtifacts} attachments={attachments} />
           ) : null}
@@ -628,9 +628,11 @@ function Execution({
 }
 
 function GitEvidence({
+  taskId,
   task,
   commits,
 }: {
+  taskId: string;
   task: typeof tasks.$inferSelect;
   commits: Array<typeof taskCommits.$inferSelect>;
 }) {
@@ -646,6 +648,15 @@ function GitEvidence({
         <span>Worktree</span>
         <code>{task.worktreePath ?? "Not prepared"}</code>
       </div>
+      {commits.length ? (
+        <a
+          className="button relay-total-diff"
+          href={`/api/tasks/${taskId}/git/diff`}
+          target="_blank"
+        >
+          Open total task diff
+        </a>
+      ) : null}
       {commits.map((commit) => (
         <article className="relay-git-commit" key={commit.id}>
           <GitCommitHorizontal size={15} />
@@ -653,7 +664,9 @@ function GitEvidence({
             <strong>{commit.message}</strong>
             <p>{commit.summary}</p>
           </div>
-          <code>{commit.sha.slice(0, 8)}</code>
+          <a href={`/api/tasks/${taskId}/git/diff?sha=${commit.sha}`} target="_blank">
+            <code>{commit.sha.slice(0, 8)}</code>
+          </a>
         </article>
       ))}
     </div>
@@ -699,17 +712,19 @@ function TestEvidence({
               id: item.id,
               label: item.originalName,
               type: item.type,
+              href: `/api/attachments/${item.id}`,
             })),
             ...artifacts.map((item) => ({
               id: item.id,
               label: item.path.split("/").at(-1) ?? item.path,
               type: item.type,
+              href: `/api/artifacts/${item.id}`,
             })),
           ].map((item) => (
-            <div key={item.id}>
+            <a href={item.href} target="_blank" key={item.id}>
               <span>{item.label}</span>
               <small>{item.type}</small>
-            </div>
+            </a>
           ))}
         </section>
       ) : null}

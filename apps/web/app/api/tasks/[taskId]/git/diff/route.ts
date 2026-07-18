@@ -11,11 +11,15 @@ export async function GET(request: Request, context: { params: Promise<{ taskId:
   const { db } = database();
   const task = db.select().from(tasks).where(eq(tasks.id, taskId)).get();
   if (!task?.worktreePath) return new Response("Worktree not available", { status: 404 });
-  const sha = new URL(request.url).searchParams.get("sha");
+  const url = new URL(request.url);
+  const sha = url.searchParams.get("sha");
+  const current = url.searchParams.get("mode") === "current";
   const repository = new GitRepository(task.worktreePath);
   try {
     let diff: string;
-    if (sha) {
+    if (current) {
+      diff = await repository.diff();
+    } else if (sha) {
       const commit = db
         .select()
         .from(taskCommits)
@@ -29,7 +33,7 @@ export async function GET(request: Request, context: { params: Promise<{ taskId:
     return new Response(diff, {
       headers: {
         "content-type": "text/plain; charset=utf-8",
-        "content-disposition": `inline; filename="${sha ? sha.slice(0, 10) : "total"}.diff"`,
+        "content-disposition": `inline; filename="${current ? "current" : sha ? sha.slice(0, 10) : "total"}.diff"`,
         "cache-control": "private, no-store",
       },
     });

@@ -181,7 +181,11 @@ export default async function TaskDetailPage({
 
   return (
     <div className="relay-task-page">
-      <TaskLiveRefresh taskId={taskId} after={latestEventId} />
+      <TaskLiveRefresh
+        taskId={taskId}
+        afterTask={latestEventId}
+        afterAgent={runEvents.at(-1)?.id ?? 0}
+      />
       <header className="relay-task-head">
         <Link href="/board" className="relay-back">
           <ArrowLeft size={13} /> Board
@@ -258,7 +262,14 @@ export default async function TaskDetailPage({
               comments={comments}
             />
           ) : null}
-          {tab === "execution" ? <Execution runs={runs} events={runEvents} /> : null}
+          {tab === "execution" ? (
+            <Execution
+              taskId={taskId}
+              worktreeReady={Boolean(row.task.worktreePath)}
+              runs={runs}
+              events={runEvents}
+            />
+          ) : null}
           {tab === "git" ? <GitEvidence taskId={taskId} task={row.task} commits={commits} /> : null}
           {tab === "tests" ? (
             <TestEvidence tests={tests} artifacts={taskArtifacts} attachments={attachments} />
@@ -598,16 +609,27 @@ function Plan({
 }
 
 function Execution({
+  taskId,
+  worktreeReady,
   runs,
   events,
 }: {
+  taskId: string;
+  worktreeReady: boolean;
   runs: Array<typeof agentRuns.$inferSelect>;
   events: Array<typeof agentEvents.$inferSelect>;
 }) {
   return (
     <div className="relay-panel">
       <p className="kicker">Agent execution</p>
-      <h2>{runs[0]?.status === "running" ? "Live work" : "Run evidence"}</h2>
+      <div className="relay-panel-head">
+        <h2>{runs[0]?.status === "running" ? "Live work" : "Run evidence"}</h2>
+        {worktreeReady ? (
+          <a className="button" href={`/api/tasks/${taskId}/git/diff?mode=current`} target="_blank">
+            Open current-commit diff
+          </a>
+        ) : null}
+      </div>
       {events.length ? (
         <div className="relay-terminal">
           {events.map((event) => (

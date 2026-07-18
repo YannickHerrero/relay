@@ -22,6 +22,8 @@ Relay does not store deployment tokens in its database. Commands inherit the wor
 
 Bind Next.js to localhost and expose it through Tailscale Serve. Do not open the port publicly. Set `RELAY_ORIGIN` to the exact HTTPS Tailscale origin and `RELAY_SECURE_COOKIES=true`.
 
+Relay discovers and creates repositories only as immediate children of `RELAY_PROJECTS_DIR`. Directory names are server-validated, and discovery does not follow symlinks or recursively inspect nested content. Keep unrelated or untrusted repositories outside that root.
+
 Relay uses a single-owner password with Argon2id hashing, random hashed sessions, HTTP-only SameSite cookies, mutation-origin checks, authenticated artifacts, and one-time deployment confirmations. Four-character passcodes are accepted for tailnet-only installations. After five failed logins within fifteen minutes, Relay blocks all owner login attempts for fifteen minutes and persists that block across restarts. The limit is global, so any device that can reach Relay can temporarily lock the owner out; use a longer password whenever untrusted devices can reach the service.
 
 ## Trust boundaries

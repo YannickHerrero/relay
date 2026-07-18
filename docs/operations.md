@@ -5,13 +5,14 @@
 ```bash
 PORT=43127
 RELAY_DATA_DIR=$HOME/.relay
+RELAY_PROJECTS_DIR=$HOME/dev
 RELAY_ORIGIN=https://relay.<tailnet>.ts.net
 RELAY_CODEX_COMMAND=codex
 RELAY_WORKER_CONCURRENCY=2
 RELAY_SECURE_COOKIES=true
 ```
 
-`pnpm dev` and `pnpm start` load the root `.env` file automatically. `RELAY_ORIGIN` must exactly match the address used in the browser.
+`pnpm dev` and `pnpm start` load the root `.env` file automatically. `RELAY_ORIGIN` must exactly match the address used in the browser. `RELAY_PROJECTS_DIR` is the only root Relay scans for existing repositories or uses for newly created project folders.
 
 Optional command timeout values are milliseconds:
 

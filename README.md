@@ -59,6 +59,12 @@ pnpm --filter @relay/agent exec codex --version
 
 Relay stores its database, uploads, artifacts, and worktrees under `~/.relay` by default. Nothing in that directory belongs in this repository.
 
+## Project discovery and creation
+
+Set `RELAY_PROJECTS_DIR` to the parent folder that contains your repositories; it defaults to `~/dev`. The **Projects** screen scans each immediate visible folder, identifies Git repositories and common project types, and shows whether it is registered. Hidden directories, nested folders, and symlinks are not traversed.
+
+Register an existing discovered Git repository from its card. **Create project** creates one new folder under the configured root, initializes the selected branch, adds `README.md`, creates an initial commit with Relay's local Git identity, and registers the repository. Relay rejects absolute paths, traversal, duplicate folder names, and invalid branch names.
+
 ## Project configuration
 
 A registered repository can define `.relay/project.config.ts`:

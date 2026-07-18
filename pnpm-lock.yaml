@@ -91,6 +91,15 @@ importers:
         specifier: ^4.0.0
         version: 4.4.3
 
+  packages/project-config:
+    dependencies:
+      "@relay/domain":
+        specifier: workspace:*
+        version: link:../domain
+      jiti:
+        specifier: ^2.0.0
+        version: 2.7.0
+
 packages:
   "@alloc/quick-lru@5.2.0":
     resolution:

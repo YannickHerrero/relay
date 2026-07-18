@@ -15,6 +15,7 @@ export async function POST(request: Request) {
     if ((await relayHealth()).agentReady === false) throw new CodexLoginRequiredError();
     const form = await request.formData();
     const input = taskRequestSchema.parse({
+      creationKey: form.get("creationKey"),
       projectId: form.get("projectId"),
       request: form.get("request"),
     });

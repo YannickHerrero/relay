@@ -64,6 +64,7 @@ export const tasks = sqliteTable(
   "tasks",
   {
     id: text("id").primaryKey(),
+    creationKey: text("creation_key"),
     projectId: text("project_id")
       .notNull()
       .references(() => projects.id),
@@ -88,6 +89,7 @@ export const tasks = sqliteTable(
     index("tasks_project_idx").on(table.projectId),
     index("tasks_stage_idx").on(table.stage),
     index("tasks_activity_idx").on(table.lastActivityAt),
+    uniqueIndex("tasks_creation_key_idx").on(table.creationKey),
   ],
 );
 

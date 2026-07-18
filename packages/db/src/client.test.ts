@@ -61,6 +61,9 @@ describe("Relay database", () => {
     expect(sqlite.prepare("SELECT name FROM relay_migrations WHERE id = 4").get()).toEqual({
       name: "login-rate-limits",
     });
+    expect(sqlite.prepare("SELECT name FROM relay_migrations WHERE id = 5").get()).toEqual({
+      name: "task-creation-keys",
+    });
     sqlite.close();
   });
 });

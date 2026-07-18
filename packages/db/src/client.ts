@@ -106,6 +106,14 @@ CREATE TABLE login_rate_limits (
 );
 `,
   },
+  {
+    id: 5,
+    name: "task-creation-keys",
+    sql: `
+ALTER TABLE tasks ADD COLUMN creation_key TEXT;
+CREATE UNIQUE INDEX tasks_creation_key_idx ON tasks(creation_key);
+`,
+  },
 ] as const;
 
 function migrate(sqlite: BetterSqlite3.Database): void {

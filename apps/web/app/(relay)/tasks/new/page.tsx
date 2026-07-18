@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { projects } from "@relay/db";
 import { asc } from "drizzle-orm";
 import Link from "next/link";
@@ -42,6 +44,11 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
         : undefined;
 
   return (
-    <TaskForm projects={rows} initialProjectId={initialProjectId} initialError={initialError} />
+    <TaskForm
+      projects={rows}
+      creationKey={randomUUID()}
+      initialProjectId={initialProjectId}
+      initialError={initialError}
+    />
   );
 }

@@ -9,10 +9,12 @@ type ProjectOption = { id: string; name: string; defaultBranch: string };
 
 export function TaskForm({
   projects,
+  creationKey,
   initialProjectId,
   initialError,
 }: {
   projects: ProjectOption[];
+  creationKey: string;
   initialProjectId: string;
   initialError?: string | undefined;
 }) {
@@ -55,6 +57,7 @@ export function TaskForm({
         className="surface relay-task-composer"
         onSubmit={submit}
       >
+        <input type="hidden" name="creationKey" value={creationKey} />
         <label className="sr-only" htmlFor="task-request">
           Task request
         </label>

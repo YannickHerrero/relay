@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { deriveTaskTitle, taskValuesFromRequest } from "./tasks";
 
 const projectId = "00000000-0000-4000-8000-000000000001";
+const creationKey = "00000000-0000-4000-8000-000000000002";
 
 describe("streamlined task requests", () => {
   it("derives the title from the first non-empty request line", () => {
@@ -13,7 +14,8 @@ describe("streamlined task requests", () => {
 
   it("caps generated titles and applies task defaults", () => {
     const request = "A".repeat(200);
-    expect(taskValuesFromRequest({ projectId, request }, "trunk")).toEqual({
+    expect(taskValuesFromRequest({ creationKey, projectId, request }, "trunk")).toEqual({
+      creationKey,
       projectId,
       title: "A".repeat(160),
       initialRequest: request,

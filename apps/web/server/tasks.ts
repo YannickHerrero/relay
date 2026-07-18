@@ -19,8 +19,13 @@ import { relayDataDir } from "./runtime";
 
 const MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024;
 const MAX_ATTACHMENTS = 10;
+const globalTaskCreations = globalThis as typeof globalThis & {
+  relayTaskCreations?: Map<string, Promise<string>>;
+};
+const taskCreations = (globalTaskCreations.relayTaskCreations ??= new Map());
 
 export const taskInputSchema = z.object({
+  creationKey: z.string().uuid().optional(),
   projectId: z.string().uuid(),
   title: z.string().trim().min(1).max(160),
   initialRequest: z.string().trim().min(1).max(50_000),
@@ -30,6 +35,7 @@ export const taskInputSchema = z.object({
 });
 
 export const taskRequestSchema = z.object({
+  creationKey: z.string().uuid(),
   projectId: z.string().uuid(),
   request: z.string().trim().min(1).max(50_000),
 });
@@ -39,13 +45,28 @@ export async function createTaskFromRequest(
   files: File[],
 ): Promise<string> {
   const request = taskRequestSchema.parse(input);
-  const project = database()
-    .db.select()
+  const relayDatabase = database();
+  const existing = relayDatabase.db
+    .select({ id: tasks.id })
+    .from(tasks)
+    .where(eq(tasks.creationKey, request.creationKey))
+    .get();
+  if (existing) return existing.id;
+  const pending = taskCreations.get(request.creationKey);
+  if (pending) return pending;
+  const project = relayDatabase.db
+    .select()
     .from(projects)
     .where(eq(projects.id, request.projectId))
     .get();
   if (!project) throw new Error("Project not found");
-  return createTask(taskValuesFromRequest(request, project.defaultBranch), files);
+  const creation = createTask(taskValuesFromRequest(request, project.defaultBranch), files);
+  taskCreations.set(request.creationKey, creation);
+  try {
+    return await creation;
+  } finally {
+    taskCreations.delete(request.creationKey);
+  }
 }
 
 export function taskValuesFromRequest(
@@ -54,6 +75,7 @@ export function taskValuesFromRequest(
 ): z.infer<typeof taskInputSchema> {
   const request = taskRequestSchema.parse(input);
   return {
+    creationKey: request.creationKey,
     projectId: request.projectId,
     title: deriveTaskTitle(request.request),
     initialRequest: request.request,

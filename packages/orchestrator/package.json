@@ -1,0 +1,24 @@
+{
+  "name": "@relay/orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@relay/agent": "workspace:*",
+    "@relay/db": "workspace:*",
+    "@relay/domain": "workspace:*",
+    "@relay/git": "workspace:*",
+    "@relay/process": "workspace:*",
+    "@relay/project-config": "workspace:*",
+    "drizzle-orm": "^0.44.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

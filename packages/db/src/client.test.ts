@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
 import { createDatabase } from "./client";
-import { projects, taskEvents, tasks } from "./schema";
+import { loginRateLimits, projects, taskEvents, tasks } from "./schema";
 
 describe("Relay database", () => {
   it("migrates and persists a task with append-only events", () => {
@@ -48,6 +48,19 @@ describe("Relay database", () => {
       "Persist history",
     );
     expect(db.select().from(taskEvents).where(eq(taskEvents.taskId, taskId)).all()).toHaveLength(1);
+
+    db.insert(loginRateLimits)
+      .values({
+        key: "owner-login",
+        failedAttempts: 1,
+        firstFailedAt: now,
+        updatedAt: now,
+      })
+      .run();
+    expect(db.select().from(loginRateLimits).get()?.failedAttempts).toBe(1);
+    expect(sqlite.prepare("SELECT name FROM relay_migrations WHERE id = 4").get()).toEqual({
+      name: "login-rate-limits",
+    });
     sqlite.close();
   });
 });

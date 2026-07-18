@@ -26,6 +26,14 @@ export const sessions = sqliteTable(
   (table) => [uniqueIndex("sessions_token_hash_idx").on(table.tokenHash)],
 );
 
+export const loginRateLimits = sqliteTable("login_rate_limits", {
+  key: text("key").primaryKey(),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  firstFailedAt: text("first_failed_at").notNull(),
+  blockedUntil: text("blocked_until"),
+  updatedAt: text("updated_at").notNull(),
+});
+
 export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),

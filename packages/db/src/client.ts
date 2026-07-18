@@ -93,6 +93,19 @@ CREATE TABLE deployment_confirmations (
     name: "deployment-confirmation-snapshots",
     sql: "ALTER TABLE deployment_confirmations ADD COLUMN recipe_snapshot TEXT NOT NULL DEFAULT '{}'",
   },
+  {
+    id: 4,
+    name: "login-rate-limits",
+    sql: `
+CREATE TABLE login_rate_limits (
+  key TEXT PRIMARY KEY,
+  failed_attempts INTEGER NOT NULL DEFAULT 0,
+  first_failed_at TEXT NOT NULL,
+  blocked_until TEXT,
+  updated_at TEXT NOT NULL
+);
+`,
+  },
 ] as const;
 
 function migrate(sqlite: BetterSqlite3.Database): void {

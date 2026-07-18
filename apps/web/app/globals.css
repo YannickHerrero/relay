@@ -1555,11 +1555,16 @@ textarea.field {
   font-size: 11px;
 }
 
+.relay-task-header-actions,
 .relay-failure-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.relay-task-header-actions {
+  flex-wrap: wrap;
 }
 
 .relay-task-route-error {
@@ -1569,6 +1574,61 @@ textarea.field {
   color: var(--relay-danger);
   padding: 9px 28px;
   font-size: 11px;
+}
+
+.relay-delete-page {
+  max-width: 760px;
+}
+
+.relay-delete-card {
+  display: grid;
+  gap: 20px;
+  padding: clamp(20px, 4vw, 30px);
+}
+
+.relay-delete-summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  border-bottom: 1px solid var(--relay-border);
+  padding-bottom: 18px;
+}
+
+.relay-delete-summary strong {
+  font-size: 14px;
+}
+
+.relay-delete-summary p {
+  margin: 3px 0 0;
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-delete-card ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  color: var(--relay-muted);
+  padding-left: 20px;
+  font-size: 12px;
+}
+
+.relay-delete-confirmation {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.relay-delete-confirmation input {
+  margin-top: 2px;
+}
+
+.relay-delete-card .relay-form-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
 }
 
 .relay-task-tabs {
@@ -2624,11 +2684,18 @@ textarea.field {
     flex-direction: column;
   }
 
+  .relay-task-header-actions,
+  .relay-failure-actions,
   .relay-implementation-controls,
   .relay-control-buttons {
     width: 100%;
     justify-items: stretch;
     justify-content: flex-start;
+  }
+
+  .relay-failure-actions {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .relay-task-tabs {

@@ -5,6 +5,7 @@ import {
   Paperclip,
   RotateCcw,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -186,6 +187,7 @@ export default async function TaskDetailPage({
   const requirement = parseRequirement(draft?.content ?? specifications[0]?.content);
   const plan = plans[0] ? implementationPlanSchema.safeParse(plans[0].content) : undefined;
   const latestEventId = history[0]?.id ?? 0;
+  const canDelete = row.task.runtimeStatus !== "agent_running" && row.task.stage !== "deploying";
 
   return (
     <div className="relay-task-page">
@@ -213,24 +215,31 @@ export default async function TaskDetailPage({
               <span className="mono">base {row.task.baseBranch}</span>
             </div>
           </div>
-          {row.task.stage === "implementation" ? (
-            <ImplementationControls taskId={taskId} status={row.task.runtimeStatus} />
-          ) : row.task.runtimeStatus === "failed" ? (
-            <div className="relay-failure-actions">
+          <div className="relay-task-header-actions">
+            {row.task.runtimeStatus === "failed" ? (
+              <div className="relay-failure-actions">
+                <div className="relay-task-alert">
+                  <CircleAlert size={14} /> {row.task.blockedReason ?? "Intervention required"}
+                </div>
+                <form action={`/api/tasks/${taskId}/retry`} method="post">
+                  <button className="button button-primary">
+                    <RotateCcw size={13} /> Retry task
+                  </button>
+                </form>
+              </div>
+            ) : row.task.stage === "implementation" ? (
+              <ImplementationControls taskId={taskId} status={row.task.runtimeStatus} />
+            ) : row.task.runtimeStatus === "blocked" ? (
               <div className="relay-task-alert">
                 <CircleAlert size={14} /> {row.task.blockedReason ?? "Intervention required"}
               </div>
-              <form action={`/api/tasks/${taskId}/retry`} method="post">
-                <button className="button button-primary">
-                  <RotateCcw size={13} /> Retry task
-                </button>
-              </form>
-            </div>
-          ) : row.task.runtimeStatus === "blocked" ? (
-            <div className="relay-task-alert">
-              <CircleAlert size={14} /> {row.task.blockedReason ?? "Intervention required"}
-            </div>
-          ) : null}
+            ) : null}
+            {canDelete ? (
+              <Link className="button button-danger" href={`/tasks/${taskId}/delete`}>
+                <Trash2 size={13} /> Delete
+              </Link>
+            ) : null}
+          </div>
         </div>
       </header>
       {query.error === "retry-failed" ? (

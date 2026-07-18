@@ -15,6 +15,8 @@ export type RelayHealth = {
   ageMs: number | null;
   activeAgents: number;
   queuedJobs: number;
+  agentReady: boolean | null;
+  agentStatus: string | null;
 };
 
 type HealthOptions = {
@@ -27,11 +29,20 @@ export async function relayHealth(options: HealthOptions = {}): Promise<RelayHea
   const dataDir = options.dataDir ?? relayDataDir();
   const now = options.now ?? new Date();
   const relayDatabase = options.relayDatabase ?? database();
-  let heartbeat: { workerId: string; at: string } | undefined;
+  let heartbeat:
+    | {
+        workerId: string;
+        at: string;
+        agentReady?: boolean;
+        agentStatus?: string;
+      }
+    | undefined;
   try {
     heartbeat = JSON.parse(await readFile(join(dataDir, "worker-heartbeat.json"), "utf8")) as {
       workerId: string;
       at: string;
+      agentReady?: boolean;
+      agentStatus?: string;
     };
   } catch {
     // A missing or incomplete heartbeat means the worker has not reported healthy.
@@ -56,5 +67,7 @@ export async function relayHealth(options: HealthOptions = {}): Promise<RelayHea
     ageMs,
     activeAgents,
     queuedJobs,
+    agentReady: heartbeat?.agentReady ?? null,
+    agentStatus: heartbeat?.agentStatus ?? null,
   };
 }

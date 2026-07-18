@@ -32,6 +32,7 @@ it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", as
     const secondHeartbeat = await waitForHeartbeat(heartbeatPath);
 
     expect(child.exitCode, output).toBeNull();
+    expect(secondHeartbeat).toMatchObject({ agentReady: true, agentStatus: "Fake agent ready" });
     expect(new Date(secondHeartbeat.at).getTime()).toBeGreaterThan(
       new Date(firstHeartbeat.at).getTime(),
     );
@@ -46,7 +47,13 @@ it("stays alive while idle, refreshes its heartbeat, and shuts down cleanly", as
   }
 }, 15_000);
 
-type Heartbeat = { workerId: string; startedAt: string; at: string };
+type Heartbeat = {
+  workerId: string;
+  startedAt: string;
+  at: string;
+  agentReady: boolean;
+  agentStatus: string;
+};
 
 async function waitForHeartbeat(path: string): Promise<Heartbeat> {
   const deadline = Date.now() + 8_000;

@@ -21,12 +21,22 @@ export function HostStatus({
     const timer = setInterval(() => void load(), 5_000);
     return () => clearInterval(timer);
   }, []);
-  const statusClass = health ? (health.online ? "" : "offline") : "checking";
+  const statusClass = health
+    ? health.online
+      ? health.agentReady === false
+        ? "warning"
+        : ""
+      : "offline"
+    : "checking";
   if (compact)
     return (
       <span className="relay-agent-state">
         <i className={statusClass} />{" "}
-        {health ? `${health.activeAgents} agents active` : "Checking worker"}
+        {health
+          ? health.online && health.agentReady === false
+            ? "Codex login required"
+            : `${health.activeAgents} agents active`
+          : "Checking worker"}
       </span>
     );
   return (
@@ -36,7 +46,9 @@ export function HostStatus({
       <small>
         {health
           ? health.online
-            ? `online · ${health.queuedJobs} queued`
+            ? health.agentReady === false
+              ? "Codex login required"
+              : `online · ${health.queuedJobs} queued`
             : "worker offline"
           : "checking worker"}
       </small>

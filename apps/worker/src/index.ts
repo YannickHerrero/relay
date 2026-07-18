@@ -1,6 +1,8 @@
+import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { hostname, homedir } from "node:os";
 import { join, resolve } from "node:path";
+import { promisify } from "node:util";
 
 import { CodexAdapter } from "@relay/agent";
 import { FakeAgentAdapter } from "@relay/agent/testing";
@@ -12,13 +14,14 @@ import {
   type OrchestrationJob,
 } from "@relay/orchestrator";
 
+const execFileAsync = promisify(execFile);
 const dataDir = resolveDataDir();
 const database = createDatabase(join(dataDir, "relay.db"));
 const workerId = `${hostname()}:${process.pid}`;
 const heartbeatIntervalMs = positiveInteger(process.env.RELAY_WORKER_HEARTBEAT_INTERVAL_MS, 5_000);
 const queue = new DurableJobQueue(database, workerId);
-const agent =
-  process.env.RELAY_AGENT_ADAPTER === "fake" ? new FakeAgentAdapter() : new CodexAdapter();
+const usingFakeAgent = process.env.RELAY_AGENT_ADAPTER === "fake";
+const agent = usingFakeAgent ? new FakeAgentAdapter() : new CodexAdapter();
 const engine = new WorkflowEngine({ database, agent, dataDir });
 const concurrency = Math.max(
   1,
@@ -31,10 +34,17 @@ console.log(`[Relay worker] ${workerId} started with concurrency ${concurrency}`
 
 const workerStartedAt = new Date().toISOString();
 const heartbeatFile = join(dataDir, "worker-heartbeat.json");
+let agentReadiness = await checkAgentReadiness();
 async function writeHeartbeat() {
   await writeFile(
     heartbeatFile,
-    JSON.stringify({ workerId, startedAt: workerStartedAt, at: new Date().toISOString() }),
+    JSON.stringify({
+      workerId,
+      startedAt: workerStartedAt,
+      at: new Date().toISOString(),
+      agentReady: agentReadiness.ready,
+      agentStatus: agentReadiness.status,
+    }),
     { mode: 0o600 },
   );
 }
@@ -45,6 +55,12 @@ const heartbeatWriter = setInterval(() => {
   });
 }, heartbeatIntervalMs);
 heartbeatWriter.unref();
+const agentReadinessWriter = setInterval(() => {
+  void checkAgentReadiness().then((readiness) => {
+    agentReadiness = readiness;
+  });
+}, 30_000);
+agentReadinessWriter.unref();
 
 const poller = setInterval(() => {
   if (stopping) return;
@@ -82,6 +98,7 @@ async function shutdown(signal: string): Promise<void> {
   stopping = true;
   clearInterval(poller);
   clearInterval(heartbeatWriter);
+  clearInterval(agentReadinessWriter);
   console.log(`[Relay worker] stopping after ${signal}`);
   await Promise.allSettled(active);
   await agent.close();
@@ -90,6 +107,18 @@ async function shutdown(signal: string): Promise<void> {
 
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 process.once("SIGINT", () => void shutdown("SIGINT"));
+
+async function checkAgentReadiness(): Promise<{ ready: boolean; status: string }> {
+  if (usingFakeAgent) return { ready: true, status: "Fake agent ready" };
+  try {
+    await execFileAsync(process.env.RELAY_CODEX_COMMAND ?? "codex", ["login", "status"], {
+      timeout: 10_000,
+    });
+    return { ready: true, status: "Codex authenticated" };
+  } catch {
+    return { ready: false, status: "Codex login required" };
+  }
+}
 
 function positiveInteger(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value ?? "", 10);

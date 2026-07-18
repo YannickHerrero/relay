@@ -22,7 +22,12 @@ describe("Relay health", () => {
     const heartbeatAt = new Date("2026-01-01T00:00:00.000Z");
     await writeFile(
       join(dataDir, "worker-heartbeat.json"),
-      JSON.stringify({ workerId: "relay-worker:test", at: heartbeatAt.toISOString() }),
+      JSON.stringify({
+        workerId: "relay-worker:test",
+        at: heartbeatAt.toISOString(),
+        agentReady: true,
+        agentStatus: "Codex authenticated",
+      }),
     );
 
     try {
@@ -38,6 +43,8 @@ describe("Relay health", () => {
         ageMs: 5_000,
         activeAgents: 0,
         queuedJobs: 0,
+        agentReady: true,
+        agentStatus: "Codex authenticated",
       });
       await expect(
         relayHealth({
@@ -59,6 +66,8 @@ describe("Relay health", () => {
         online: false,
         workerId: null,
         ageMs: null,
+        agentReady: null,
+        agentStatus: null,
       });
     } finally {
       relayDatabase.sqlite.close();

@@ -35,9 +35,11 @@ export default async function NewTaskPage({ searchParams }: { searchParams: Sear
     requestedProjectId,
   );
   const initialError =
-    query.error === "create-failed"
-      ? "Unable to create the task. Check the request and files."
-      : undefined;
+    query.error === "codex-login-required"
+      ? "Codex login is required before starting a task."
+      : query.error === "create-failed"
+        ? "Unable to create the task. Check the request and files."
+        : undefined;
 
   return (
     <TaskForm projects={rows} initialProjectId={initialProjectId} initialError={initialError} />

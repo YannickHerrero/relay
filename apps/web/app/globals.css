@@ -250,6 +250,11 @@ textarea.field {
   background: var(--relay-subtle);
 }
 
+.relay-agent-state i.warning,
+.relay-status-dot.warning {
+  background: var(--relay-warning);
+}
+
 .relay-notification-center {
   position: relative;
 }

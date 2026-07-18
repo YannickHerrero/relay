@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { currentUser } from "@/server/auth";
 import { formRedirect } from "@/server/form-request";
+import { relayHealth } from "@/server/health";
 import { assertMutationOrigin } from "@/server/security";
 import { rememberTaskProject } from "@/server/task-preferences";
 import { createTaskFromRequest, taskRequestSchema } from "@/server/tasks";
@@ -11,6 +12,7 @@ export async function POST(request: Request) {
   const wantsJson = request.headers.get("accept")?.includes("application/json") ?? false;
   try {
     assertMutationOrigin(request);
+    if ((await relayHealth()).agentReady === false) throw new CodexLoginRequiredError();
     const form = await request.formData();
     const input = taskRequestSchema.parse({
       projectId: form.get("projectId"),
@@ -25,10 +27,20 @@ export async function POST(request: Request) {
       ? NextResponse.json({ id }, { status: 201 })
       : formRedirect(`/tasks/${id}?tab=conversation`);
   } catch (error) {
-    if (!wantsJson) return formRedirect("/tasks/new?error=create-failed");
+    if (!wantsJson) {
+      return formRedirect(
+        `/tasks/new?error=${error instanceof CodexLoginRequiredError ? "codex-login-required" : "create-failed"}`,
+      );
+    }
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Unable to create task" },
       { status: 400 },
     );
+  }
+}
+
+class CodexLoginRequiredError extends Error {
+  constructor() {
+    super("Codex login is required before starting a task");
   }
 }

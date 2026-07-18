@@ -15,6 +15,7 @@ test-results/
 # Runtime data
 .relay-data/
 .relay-e2e-data/
+.relay-e2e-projects/
 *.db
 *.db-shm
 *.db-wal

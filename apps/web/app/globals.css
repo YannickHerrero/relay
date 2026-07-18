@@ -619,6 +619,134 @@ textarea.field {
   color: var(--relay-subtle);
 }
 
+.relay-project-section + .relay-project-section {
+  margin-top: 30px;
+}
+
+.relay-section-head .relay-count,
+.relay-count {
+  display: inline-grid;
+  min-width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid var(--relay-border);
+  border-radius: 99px;
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-empty-state-compact {
+  min-height: 100px;
+  grid-template-columns: 32px 1fr;
+  justify-items: start;
+  align-content: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.relay-empty-state-compact h2 {
+  margin: 0 0 3px;
+}
+
+.relay-empty-state-compact p {
+  max-width: none;
+  margin: 0;
+}
+
+.relay-discovery-head {
+  align-items: flex-end;
+  margin-bottom: 14px;
+}
+
+.relay-discovery-head h2 {
+  margin-bottom: 4px;
+}
+
+.relay-project-root {
+  max-width: min(620px, 70vw);
+  overflow: hidden;
+  margin: 0;
+  color: var(--relay-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relay-section-actions,
+.relay-branch,
+.relay-discovery-main,
+.relay-discovery-meta {
+  display: flex;
+  align-items: center;
+}
+
+.relay-section-actions {
+  gap: 8px;
+}
+
+.button-small {
+  min-height: 28px;
+  padding: 5px 9px;
+  font-size: 10px;
+}
+
+.relay-discovery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+  gap: 10px;
+}
+
+.relay-discovery-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 14px;
+}
+
+.relay-discovery-main {
+  min-width: 0;
+  gap: 10px;
+}
+
+.relay-discovery-copy {
+  min-width: 0;
+}
+
+.relay-discovery-copy h3 {
+  margin: 0 0 3px;
+  font-size: 13px;
+}
+
+.relay-discovery-copy p {
+  overflow: hidden;
+  margin: 0;
+  color: var(--relay-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.relay-discovery-meta {
+  grid-column: 1;
+  gap: 9px;
+  padding-left: 42px;
+}
+
+.relay-branch {
+  gap: 4px;
+  color: var(--relay-muted);
+  font: 10px var(--relay-font-mono);
+}
+
+.relay-muted-status {
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-discovery-action {
+  grid-row: 1 / 3;
+  grid-column: 2;
+  align-self: center;
+}
+
 .relay-empty-state {
   display: grid;
   min-height: 300px;

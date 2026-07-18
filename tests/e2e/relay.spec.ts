@@ -34,17 +34,35 @@ test.describe.serial("Relay owner workflow", () => {
     }
   });
 
-  test("registers a trusted Git project", async ({ page }) => {
+  test("discovers and registers a trusted Git project", async ({ page }) => {
     await signIn(page);
-    await page.goto("/projects/new");
-    await page.getByLabel("Project name").fill("Relay");
-    await page.getByLabel("Repository path").fill(process.cwd());
-    await page.getByLabel("Project type").selectOption("web");
-    await page.getByLabel("Default branch").fill("main");
-    await page.getByRole("button", { name: "Register project" }).click();
+    await page.goto("/projects");
+    const repository = page.locator("article").filter({ hasText: "relay-fixture" });
+    await expect(repository.getByText("main")).toBeVisible();
+    await repository.getByRole("button", { name: "Register" }).click();
     await expect(page).toHaveURL(/\/projects\/[a-f0-9-]+$/);
-    await expect(page.getByRole("heading", { name: "Relay" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "relay-fixture" })).toBeVisible();
     await expect(page.getByText("Command policy")).toBeVisible();
+  });
+
+  test("creates a Git project without client JavaScript", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    try {
+      await page.goto("/login");
+      await page.getByLabel("Owner password").fill(ownerPassword);
+      await page.getByRole("button", { name: "Sign in to Relay" }).click();
+      await page.goto("/projects/new");
+      await page.getByLabel("Project name").fill("Created by Relay");
+      await page.getByLabel("Folder name").fill("created-by-relay");
+      await page.getByLabel("Project type").selectOption("custom");
+      await page.getByRole("button", { name: "Create project" }).click();
+      await expect(page).toHaveURL(/\/projects\/[a-f0-9-]+$/);
+      await expect(page.getByRole("heading", { name: "Created by Relay" })).toBeVisible();
+      expect(page.url()).not.toContain("name=");
+    } finally {
+      await context.close();
+    }
   });
 
   test("creates a vague request and preserves it on the board", async ({ page }) => {

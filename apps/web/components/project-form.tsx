@@ -1,21 +1,27 @@
 "use client";
 
-import { ArrowLeft, FolderGit2 } from "lucide-react";
+import { ArrowLeft, FolderPlus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-export function ProjectForm() {
+export function ProjectForm({
+  projectsRoot,
+  initialError,
+}: {
+  projectsRoot: string;
+  initialError?: string | undefined;
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<string | undefined>(initialError);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setPending(true);
     setError(undefined);
     const data = Object.fromEntries(new FormData(event.currentTarget));
-    const response = await fetch("/api/projects", {
+    const response = await fetch("/api/projects/create", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(data),
@@ -23,7 +29,7 @@ export function ProjectForm() {
     const result = (await response.json()) as { id?: string; error?: string };
     setPending(false);
     if (!response.ok || !result.id) {
-      setError(result.error ?? "Unable to register project");
+      setError(result.error ?? "Unable to create project");
       return;
     }
     router.push(`/projects/${result.id}`);
@@ -36,30 +42,40 @@ export function ProjectForm() {
         <ArrowLeft size={13} /> Projects
       </Link>
       <header>
-        <p className="kicker">Repository access</p>
-        <h1>Register a project</h1>
-        <p>Relay validates the repository and snapshots its project configuration.</p>
+        <p className="kicker">New repository</p>
+        <h1>Create a project</h1>
+        <p>
+          Relay creates, initializes, and registers a Git repository under your projects folder.
+        </p>
       </header>
-      <form className="surface relay-form-card" onSubmit={submit}>
+      <form
+        action="/api/projects/create"
+        method="post"
+        className="surface relay-form-card"
+        onSubmit={submit}
+      >
         <div className="relay-form-intro">
-          <FolderGit2 size={18} />
+          <FolderPlus size={18} />
           <div>
-            <strong>Local Git repository</strong>
-            <p>Use an absolute path available to the macOS account running Relay.</p>
+            <strong>Projects directory</strong>
+            <p className="mono">{projectsRoot}</p>
           </div>
         </div>
         <label>
           <span className="label">Project name</span>
-          <input className="field" name="name" required maxLength={100} placeholder="Doku Reader" />
+          <input className="field" name="name" required maxLength={100} placeholder="My project" />
         </label>
         <label>
-          <span className="label">Repository path</span>
+          <span className="label">Folder name</span>
           <input
             className="field mono"
-            name="repositoryPath"
+            name="directoryName"
             required
-            placeholder="/Users/agent/dev/doku"
+            maxLength={100}
+            pattern="[^./][^/]*"
+            placeholder="my-project"
           />
+          <small>One new folder directly inside the configured projects directory.</small>
         </label>
         <div className="relay-form-grid">
           <label>
@@ -87,7 +103,7 @@ export function ProjectForm() {
             Cancel
           </Link>
           <button className="button button-primary" disabled={pending}>
-            {pending ? "Validating…" : "Register project"}
+            {pending ? "Creating…" : "Create project"}
           </button>
         </div>
       </form>

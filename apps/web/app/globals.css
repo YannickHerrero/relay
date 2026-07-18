@@ -1006,6 +1006,10 @@ textarea.field {
   cursor: pointer;
 }
 
+.relay-task-attachments > span {
+  white-space: nowrap;
+}
+
 .relay-task-attachments input {
   max-width: 170px;
   color: var(--relay-muted);
@@ -2533,7 +2537,12 @@ textarea.field {
   }
 
   .relay-task-attachments {
-    flex: 1 1 150px;
+    flex: 1 1 170px;
+  }
+
+  .relay-task-attachments input {
+    min-width: 0;
+    max-width: 105px;
   }
 
   .relay-task-file-help {

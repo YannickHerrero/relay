@@ -137,10 +137,20 @@ test.describe.serial("Relay owner workflow", () => {
       await page.setViewportSize({ width, height });
       await page.goto("/projects");
       await expect(page.getByRole("heading", { name: "Discovered folders" })).toBeVisible();
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
-        `${name} project discovery should not overflow`,
-      ).toBe(true);
+      const discoveryLayout = await page.evaluate(() => ({
+        fits: document.documentElement.scrollWidth <= window.innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        viewportWidth: window.innerWidth,
+        offenders: Array.from(document.querySelectorAll("body *"))
+          .filter((element) => element.getBoundingClientRect().right > window.innerWidth + 1)
+          .slice(0, 8)
+          .map((element) => ({
+            element: `${element.tagName.toLowerCase()}.${element.className}`,
+            right: Math.round(element.getBoundingClientRect().right),
+            width: Math.round(element.getBoundingClientRect().width),
+          })),
+      }));
+      expect(discoveryLayout.fits, JSON.stringify(discoveryLayout)).toBe(true);
       await testInfo.attach(`projects-${name}`, {
         body: await page.screenshot({ fullPage: true }),
         contentType: "image/png",

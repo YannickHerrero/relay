@@ -16,11 +16,20 @@ export async function GET(_request: Request, context: { params: Promise<{ artifa
   try {
     const path = await realpath(artifact.path);
     const contained = relative(await realpath(relayDataDir()), path);
-    if (contained.startsWith("..") || contained.startsWith("/")) throw new Error("Artifact path escaped Relay data");
-    return new Response(await readFile(path), { headers: { "content-type": artifact.mimeType ?? "application/octet-stream", "content-disposition": `inline; filename="${safeFilename(path.split("/").at(-1) ?? "artifact")}"`, "cache-control": "private, no-store" } });
+    if (contained.startsWith("..") || contained.startsWith("/"))
+      throw new Error("Artifact path escaped Relay data");
+    return new Response(await readFile(path), {
+      headers: {
+        "content-type": artifact.mimeType ?? "application/octet-stream",
+        "content-disposition": `inline; filename="${safeFilename(path.split("/").at(-1) ?? "artifact")}"`,
+        "cache-control": "private, no-store",
+      },
+    });
   } catch {
     return new Response("Artifact is unavailable", { status: 404 });
   }
 }
 
-function safeFilename(value: string): string { return value.replace(/[^a-zA-Z0-9._-]/g, "-"); }
+function safeFilename(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "-");
+}

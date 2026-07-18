@@ -22,7 +22,9 @@ lines.on("line", (line) => {
   if (message.method === "turn/start") {
     send({ id: message.id, result: { turn: { id: "turn-1" } } });
     queueMicrotask(() => {
+      send({ method: "item/reasoning/summaryTextDelta", params: { threadId: "thread-1", turnId: "turn-1", itemId: "reason-1", delta: "Inspecting the task" } });
       send({ method: "item/agentMessage/delta", params: { threadId: "thread-1", turnId: "turn-1", itemId: "item-1", delta: "hello" } });
+      send({ method: "item/completed", params: { threadId: "thread-1", turnId: "turn-1", item: { type: "fileChange", changes: [{ path: "src/task.ts" }] } } });
       send({ method: "turn/completed", params: { threadId: "thread-1", turn: { id: "turn-1", items: [{ type: "agentMessage", text: "hello" }] } } });
     });
   }
@@ -39,7 +41,9 @@ lines.on("line", (line) => {
     const events = [];
     for await (const event of adapter.runTurn({ sessionId: session.id, prompt: "Hello" }))
       events.push(event);
+    expect(events).toContainEqual({ type: "progress", text: "Inspecting the task" });
     expect(events).toContainEqual({ type: "message.delta", text: "hello" });
+    expect(events).toContainEqual({ type: "file.changed", path: "src/task.ts" });
     expect(events.at(-1)).toEqual({ type: "turn.completed", output: "hello" });
     await adapter.close();
   });

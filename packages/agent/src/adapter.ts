@@ -24,6 +24,8 @@ export type RunTurnInput = {
 export type AgentEvent =
   | { type: "turn.started"; turnId: string }
   | { type: "message.delta"; text: string }
+  | { type: "progress"; text: string }
+  | { type: "file.changed"; path: string }
   | { type: "command.started"; command: string }
   | { type: "command.output"; stream: "stdout" | "stderr"; chunk: string }
   | { type: "command.completed"; command: string; exitCode: number | null }

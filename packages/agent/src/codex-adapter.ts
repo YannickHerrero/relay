@@ -147,7 +147,12 @@ export class CodexAdapter implements AgentAdapter {
       return;
     }
 
-    if (message.method === "item/agentMessage/delta") {
+    if (
+      message.method === "item/reasoning/summaryTextDelta" ||
+      message.method === "item/reasoning/summary_text_delta"
+    ) {
+      state.queue.push({ type: "progress", text: stringValue(params.delta) ?? "" });
+    } else if (message.method === "item/agentMessage/delta") {
       const delta = stringValue(params.delta) ?? "";
       state.output += delta;
       state.queue.push({ type: "message.delta", text: delta });
@@ -173,6 +178,8 @@ export class CodexAdapter implements AgentAdapter {
           command: stringValue(item.command) ?? "command",
           exitCode: typeof item.exitCode === "number" ? item.exitCode : null,
         });
+      } else if (item?.type === "fileChange") {
+        for (const path of fileChangePaths(item)) state.queue.push({ type: "file.changed", path });
       } else if (item?.type === "imageView" && typeof item.path === "string") {
         state.queue.push({ type: "artifact", path: item.path, artifactType: "screenshot" });
       }
@@ -341,6 +348,15 @@ function asOptionalObject(value: unknown): JsonObject | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as JsonObject)
     : undefined;
+}
+
+function fileChangePaths(item: JsonObject): string[] {
+  const direct = stringValue(item.path);
+  const changes = Array.isArray(item.changes) ? item.changes : [];
+  const paths = changes
+    .map((change) => stringValue(asOptionalObject(change)?.path))
+    .filter((path): path is string => Boolean(path));
+  return direct ? [direct, ...paths] : paths;
 }
 
 function asString(value: unknown, message: string): string {

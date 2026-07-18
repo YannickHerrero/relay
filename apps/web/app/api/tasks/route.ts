@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     await rememberTaskProject(input.projectId);
     return wantsJson
       ? NextResponse.json({ id }, { status: 201 })
-      : formRedirect(`/tasks/${id}?tab=conversation`);
+      : formRedirect(`/board?task=${id}&phase=refine`);
   } catch (error) {
     if (!wantsJson) {
       return formRedirect(

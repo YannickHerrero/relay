@@ -1244,6 +1244,15 @@ export class WorkflowEngine {
         startedAt: now,
       })
       .run();
+    db.insert(taskEvents)
+      .values({
+        taskId,
+        type: "agent.run_started",
+        actor: "agent",
+        payload: { runId, role },
+        createdAt: now,
+      })
+      .run();
     const session = await this.options.agent.createSession({
       role,
       cwd,

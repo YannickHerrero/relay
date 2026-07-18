@@ -3,7 +3,14 @@ import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { expect, test, type Page } from "@playwright/test";
-import { createDatabase, orchestrationJobs, tasks } from "@relay/db";
+import {
+  agentEvents,
+  agentRuns,
+  createDatabase,
+  orchestrationJobs,
+  requirementDrafts,
+  tasks,
+} from "@relay/db";
 import { and, eq, inArray } from "drizzle-orm";
 
 const ownerPassword = "1234";
@@ -97,13 +104,19 @@ test.describe.serial("Relay owner workflow", () => {
         buffer: Buffer.from("Reader position evidence"),
       });
       await page.getByRole("button", { name: "Start task" }).click();
-      await expect(page).toHaveURL(/\/tasks\/[a-f0-9-]+\?tab=conversation$/);
+      await expect(page).toHaveURL(/\/board\?task=[a-f0-9-]+&phase=refine$/);
+      const taskDialog = page.getByRole("dialog", {
+        name: "Keep readers positioned during definitions",
+      });
       await expect(
-        page.getByRole("heading", { name: "Keep readers positioned during definitions" }),
+        taskDialog.getByRole("heading", { name: "Keep readers positioned during definitions" }),
       ).toBeVisible();
-      await expect(page.getByText("Definitions should feel faster")).toBeVisible();
+      await expect(taskDialog.getByText("Definitions should feel faster")).toBeVisible();
+      await expect(taskDialog.getByRole("heading", { name: "Activity & status" })).toBeVisible();
+      await expect(taskDialog.getByRole("button", { name: "Plan" })).toBeDisabled();
 
-      const taskPath = new URL(page.url()).pathname;
+      const taskId = new URL(page.url()).searchParams.get("task");
+      expect(taskId).toBeTruthy();
       const duplicate = await context.request.post("/api/tasks", {
         headers: {
           accept: "application/json",
@@ -112,9 +125,7 @@ test.describe.serial("Relay owner workflow", () => {
         multipart: { creationKey, projectId, request: taskRequest },
       });
       expect(duplicate.status()).toBe(201);
-      expect((await duplicate.json()).id).toBe(taskPath.split("/").at(-1));
-
-      await page.goto(`${taskPath}?tab=tests`);
+      expect((await duplicate.json()).id).toBe(taskId);
       await expect(page.getByRole("link", { name: "evidence.txt" })).toBeVisible();
 
       await page.goto("/tasks/new");
@@ -127,6 +138,111 @@ test.describe.serial("Relay owner workflow", () => {
     } finally {
       await context.close();
     }
+  });
+
+  test("moves a ready card to only its next phase", async ({ page }, testInfo) => {
+    await signIn(page);
+    const relayDatabase = createDatabase(join(process.cwd(), ".relay-e2e-data", "relay.db"));
+    const task = relayDatabase.db.select().from(tasks).get();
+    expect(task).toBeTruthy();
+    const now = new Date().toISOString();
+    relayDatabase.db
+      .update(orchestrationJobs)
+      .set({ status: "completed", updatedAt: now })
+      .where(eq(orchestrationJobs.taskId, task!.id))
+      .run();
+    relayDatabase.db
+      .update(tasks)
+      .set({ runtimeStatus: "idle", updatedAt: now, lastActivityAt: now })
+      .where(eq(tasks.id, task!.id))
+      .run();
+    relayDatabase.db
+      .insert(requirementDrafts)
+      .values({
+        taskId: task!.id,
+        updatedAt: now,
+        content: {
+          title: task!.title,
+          problem: "Reader position is lost",
+          objective: "Keep the reader positioned",
+          expectedBehavior: ["Preserve reader position"],
+          userFlows: [{ name: "Open definition", steps: ["Open a definition"] }],
+          acceptanceCriteria: ["Reader position remains stable"],
+          edgeCases: [],
+          constraints: [],
+          outOfScope: [],
+          unresolvedQuestions: [],
+          attachments: [],
+        },
+      })
+      .run();
+
+    await page.goto("/board");
+    const handle = page.getByRole("button", { name: /Move Keep readers positioned.*to Plan/ });
+    const destination = page.locator('section[aria-labelledby="column-plan"]');
+    await expect(handle).toBeEnabled();
+    const sourceBox = await handle.boundingBox();
+    const destinationBox = await destination.boundingBox();
+    expect(sourceBox).toBeTruthy();
+    expect(destinationBox).toBeTruthy();
+    await page.mouse.move(
+      sourceBox!.x + sourceBox!.width / 2,
+      sourceBox!.y + sourceBox!.height / 2,
+    );
+    await page.mouse.down();
+    await page.mouse.move(destinationBox!.x + destinationBox!.width / 2, destinationBox!.y + 90, {
+      steps: 12,
+    });
+    await page.mouse.up();
+    await expect(page.getByRole("heading", { name: "Approve & start planning?" })).toBeVisible();
+    await page.waitForTimeout(100);
+    await page.getByRole("button", { name: "Approve & start planning" }).click();
+    await expect(destination.getByRole("link", { name: /Keep readers positioned/ })).toBeVisible();
+    expect(relayDatabase.db.select().from(tasks).where(eq(tasks.id, task!.id)).get()?.stage).toBe(
+      "planning",
+    );
+
+    const runId = randomUUID();
+    relayDatabase.db
+      .insert(agentRuns)
+      .values({
+        id: runId,
+        taskId: task!.id,
+        role: "technical-planner",
+        status: "running",
+        startedAt: now,
+      })
+      .run();
+    relayDatabase.db
+      .insert(agentEvents)
+      .values([
+        {
+          runId,
+          taskId: task!.id,
+          type: "progress",
+          payload: { type: "progress", text: "Inspecting repository context" },
+          createdAt: now,
+        },
+        {
+          runId,
+          taskId: task!.id,
+          type: "command.started",
+          payload: { type: "command.started", command: "git status --short" },
+          createdAt: now,
+        },
+      ])
+      .run();
+    await destination.getByRole("link", { name: /Keep readers positioned/ }).click();
+    await expect(page.getByText("Inspecting repository context")).toBeVisible();
+    await expect(page.getByText("git status --short")).toBeVisible();
+    await testInfo.attach("live-agent-dialog-desktop", {
+      body: await page.screenshot({ fullPage: true }),
+      contentType: "image/png",
+    });
+    await page.goBack();
+    await expect(page).toHaveURL(/\/board$/);
+    await expect(page.getByRole("dialog", { name: task!.title })).toHaveCount(0);
+    relayDatabase.sqlite.close();
   });
 
   test("retries and safely deletes a failed task", async ({ page }, testInfo) => {
@@ -162,8 +278,13 @@ test.describe.serial("Relay owner workflow", () => {
       body: await page.screenshot({ fullPage: true }),
       contentType: "image/png",
     });
+    await page.waitForTimeout(100);
+    const retryResponse = page.waitForResponse((candidate) =>
+      candidate.url().endsWith(`/api/tasks/${taskId}/retry`),
+    );
     await page.getByRole("button", { name: "Retry task" }).click();
-    await expect(page).toHaveURL(new RegExp(`/tasks/${taskId}\\?tab=conversation$`));
+    expect((await retryResponse).status()).toBe(200);
+    await expect(page).toHaveURL(new RegExp(`/board\\?task=${taskId}&phase=refine$`));
     expect(
       relayDatabase.db
         .select()
@@ -190,8 +311,8 @@ test.describe.serial("Relay owner workflow", () => {
       .run();
     await page.reload();
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.getByRole("link", { name: "Delete" }).click();
-    await expect(page.getByRole("heading", { name: "Delete task?" })).toBeVisible();
+    await page.getByRole("button", { name: "Delete" }).click();
+    await expect(page.getByRole("heading", { name: "Delete this task?" })).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
@@ -199,7 +320,6 @@ test.describe.serial("Relay owner workflow", () => {
       body: await page.screenshot({ fullPage: true }),
       contentType: "image/png",
     });
-    await page.getByLabel(/I understand this permanently deletes/).check();
     await page.getByRole("button", { name: "Delete task" }).click();
     await expect(page).toHaveURL(/\/board$/);
     expect(relayDatabase.db.select().from(tasks).where(eq(tasks.id, taskId)).get()).toBeUndefined();

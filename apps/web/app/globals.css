@@ -1288,6 +1288,731 @@ textarea.field {
   font: 10px var(--relay-font-mono);
 }
 
+.relay-board-six .relay-column {
+  width: 282px;
+  flex-basis: 282px;
+  transition:
+    background var(--relay-motion-fast),
+    box-shadow var(--relay-motion-fast);
+}
+
+.relay-column.drop-valid {
+  background: var(--relay-accent-soft);
+  box-shadow: inset 0 3px var(--relay-accent);
+}
+
+.relay-column.drop-invalid {
+  background: var(--relay-danger-soft);
+  box-shadow: inset 0 3px var(--relay-danger);
+}
+
+.relay-task-card {
+  position: relative;
+  overflow: hidden;
+  padding: 0;
+}
+
+.relay-task-card-link {
+  display: block;
+  color: inherit;
+  padding: 12px 38px 12px 12px;
+  text-decoration: none;
+}
+
+.relay-card-drag-handle {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  right: 6px;
+  display: grid;
+  width: 27px;
+  height: 28px;
+  cursor: grab;
+  place-items: center;
+  border: 0;
+  border-radius: var(--relay-radius-sm);
+  background: transparent;
+  color: var(--relay-subtle);
+  opacity: 0;
+  transition:
+    opacity var(--relay-motion-fast),
+    background var(--relay-motion-fast);
+  touch-action: none;
+}
+
+.relay-task-card:hover .relay-card-drag-handle,
+.relay-card-drag-handle:focus-visible {
+  opacity: 1;
+}
+
+.relay-card-drag-handle:hover:not(:disabled) {
+  background: var(--relay-bg);
+  color: var(--relay-fg);
+}
+
+.relay-card-drag-handle:active:not(:disabled) {
+  cursor: grabbing;
+}
+
+.relay-card-drag-handle:disabled {
+  cursor: not-allowed;
+}
+
+.relay-task-card.is-dragging {
+  opacity: 0.35;
+}
+
+.relay-task-drag-overlay {
+  width: 260px;
+  cursor: grabbing;
+  border-color: var(--relay-accent);
+  padding: 13px;
+  box-shadow: var(--relay-shadow-panel);
+  transform: rotate(1.5deg);
+}
+
+.relay-ready-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border-radius: 99px;
+  background: var(--relay-accent-soft);
+  color: color-mix(in oklch, var(--relay-accent) 80%, var(--relay-fg));
+  padding: 2px 6px;
+  font: 9px var(--relay-font-mono);
+  text-transform: uppercase;
+}
+
+.relay-board-move-error {
+  position: fixed;
+  z-index: 75;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  max-width: min(390px, calc(100vw - 28px));
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  border: 1px solid color-mix(in oklch, var(--relay-danger) 25%, var(--relay-border));
+  border-radius: var(--relay-radius-md);
+  background: var(--relay-surface);
+  box-shadow: var(--relay-shadow-panel);
+  color: var(--relay-danger);
+  padding: 11px 13px;
+  font-size: 11px;
+}
+
+.relay-board-move-error button {
+  display: grid;
+  margin-left: auto;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.relay-task-dialog-layer {
+  position: fixed;
+  z-index: 70;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in oklch, var(--relay-fg) 34%, transparent);
+  padding: 24px;
+  backdrop-filter: blur(2px);
+}
+
+.relay-task-dialog {
+  display: grid;
+  width: min(1480px, 96vw);
+  height: min(930px, 94vh);
+  overflow: hidden;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  border: 1px solid var(--relay-border-strong);
+  border-radius: var(--relay-radius-lg);
+  background: var(--relay-bg);
+  box-shadow: var(--relay-shadow-panel);
+}
+
+.relay-task-dialog-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: var(--relay-surface);
+  padding: 18px 21px 14px;
+}
+
+.relay-task-dialog-head h1 {
+  max-width: 900px;
+  margin: 4px 0 7px;
+  font-size: clamp(20px, 2.2vw, 27px);
+  line-height: 1.18;
+  letter-spacing: -0.045em;
+}
+
+.relay-task-dialog-controls {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.relay-dialog-close {
+  width: 36px;
+  padding-inline: 0;
+}
+
+.relay-dialog-alert {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-top: 1px solid color-mix(in oklch, var(--relay-danger) 15%, var(--relay-border));
+  background: var(--relay-danger-soft);
+  color: var(--relay-danger);
+  padding: 8px 21px;
+  font-size: 11px;
+}
+
+.relay-phase-tabs {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(100px, 1fr));
+  overflow-x: auto;
+  border-block: 1px solid var(--relay-border);
+  background: var(--relay-surface);
+  padding: 0 20px;
+}
+
+.relay-phase-tabs button {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--relay-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.relay-phase-tabs button.active {
+  border-bottom-color: var(--relay-fg);
+  color: var(--relay-fg);
+}
+
+.relay-phase-tabs button.completed {
+  color: color-mix(in oklch, var(--relay-accent) 75%, var(--relay-fg));
+}
+
+.relay-phase-tabs button:disabled {
+  cursor: not-allowed;
+  color: var(--relay-subtle);
+  opacity: 0.65;
+}
+
+.relay-task-dialog-layout {
+  display: grid;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr) 310px;
+}
+
+.relay-phase-workspace {
+  min-width: 0;
+  min-height: 0;
+  border-right: 1px solid var(--relay-border);
+}
+
+.relay-phase-conversation {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+}
+
+.relay-phase-conversation-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--relay-border);
+  background: var(--relay-surface-elevated);
+  padding: 17px 21px 13px;
+}
+
+.relay-phase-conversation-head h2 {
+  margin: 4px 0 0;
+  font-size: 18px;
+  letter-spacing: -0.025em;
+}
+
+.relay-phase-conversation-head > span {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+  text-transform: uppercase;
+}
+
+.relay-phase-conversation-head .relay-current-phase {
+  border-radius: 99px;
+  background: var(--relay-accent-soft);
+  color: var(--relay-accent);
+  padding: 3px 7px;
+}
+
+.relay-conversation-stream {
+  display: grid;
+  min-height: 0;
+  align-content: start;
+  gap: 15px;
+  overflow-y: auto;
+  padding: 20px 21px 28px;
+  scroll-behavior: smooth;
+}
+
+.relay-dialog-message {
+  display: grid;
+  max-width: 840px;
+  grid-template-columns: 27px minmax(0, 1fr);
+  gap: 10px;
+}
+
+.relay-dialog-message > div:last-child {
+  border: 1px solid var(--relay-border);
+  border-radius: 0 var(--relay-radius-md) var(--relay-radius-md) var(--relay-radius-md);
+  background: var(--relay-surface);
+  padding: 10px 12px;
+}
+
+.relay-dialog-message.message-user > div:last-child {
+  background: var(--relay-info-soft);
+}
+
+.relay-dialog-message header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.relay-dialog-message header strong {
+  font-size: 11px;
+}
+
+.relay-dialog-message time {
+  color: var(--relay-muted);
+  font: 8px var(--relay-font-mono);
+}
+
+.relay-dialog-message p {
+  margin: 5px 0 0;
+  white-space: pre-wrap;
+  font-size: 12px;
+}
+
+.relay-agent-feed {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-md);
+  background: color-mix(in oklch, var(--relay-fg) 96%, black);
+  color: oklch(92% 0.008 240);
+}
+
+.relay-agent-feed > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid color-mix(in oklch, white 12%, transparent);
+  padding: 10px 12px;
+}
+
+.relay-agent-feed > header > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.relay-agent-feed > header strong {
+  font-size: 11px;
+}
+
+.relay-agent-feed > header time {
+  color: oklch(72% 0.01 240);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-working-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--relay-accent);
+  box-shadow: 0 0 0 0 color-mix(in oklch, var(--relay-accent) 45%, transparent);
+  animation: relay-working 1.6s infinite;
+}
+
+@keyframes relay-working {
+  65% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.relay-agent-feed-scroll {
+  display: grid;
+  max-height: 380px;
+  gap: 1px;
+  overflow-y: auto;
+  padding: 7px 0;
+}
+
+.relay-agent-entry {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 5px;
+  padding: 6px 11px;
+}
+
+.relay-agent-entry > svg {
+  margin-top: 3px;
+  color: oklch(68% 0.02 240);
+}
+
+.relay-agent-entry time {
+  color: oklch(62% 0.01 240);
+  font: 8px var(--relay-font-mono);
+}
+
+.relay-agent-entry p,
+.relay-agent-entry pre {
+  margin: 2px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: 10px/1.55 var(--relay-font-mono);
+}
+
+.relay-agent-entry pre {
+  max-height: 180px;
+  overflow: auto;
+  color: oklch(78% 0.02 145);
+}
+
+.agent-entry-error {
+  color: oklch(78% 0.13 25);
+}
+
+.agent-entry-complete,
+.agent-entry-file {
+  color: oklch(78% 0.11 145);
+}
+
+.relay-agent-feed-empty {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: oklch(70% 0.01 240);
+  padding: 14px 12px;
+  font-size: 10px;
+}
+
+.relay-agent-feed-empty p {
+  margin: 0;
+}
+
+.relay-jump-latest {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  min-height: 26px;
+  border-color: color-mix(in oklch, white 20%, transparent);
+  background: color-mix(in oklch, var(--relay-fg) 88%, black);
+  color: white;
+  padding: 4px 8px;
+  font-size: 9px;
+}
+
+.relay-phase-evidence {
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-md);
+  background: var(--relay-surface);
+  padding: 15px;
+}
+
+.relay-phase-evidence > h3 {
+  margin: 4px 0 8px;
+  font-size: 15px;
+}
+
+.relay-phase-evidence > p:not(.kicker) {
+  color: var(--relay-muted);
+  font-size: 11px;
+}
+
+.relay-compact-requirement > p,
+.relay-compact-requirement li {
+  font-size: 11px;
+}
+
+.relay-compact-requirement ul {
+  padding-left: 18px;
+}
+
+.relay-evidence-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  border-left: 2px solid var(--relay-warning);
+  background: var(--relay-warning-soft);
+  padding: 7px 9px;
+}
+
+.relay-attachment-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 4px 0 0;
+  border: 1px solid var(--relay-border);
+  border-radius: 99px;
+  color: var(--relay-muted);
+  padding: 3px 7px;
+  font: 9px var(--relay-font-mono);
+  text-decoration: none;
+}
+
+.relay-plan-stream {
+  display: grid;
+  gap: 7px;
+}
+
+.relay-plan-stream article {
+  display: grid;
+  grid-template-columns: 25px minmax(0, 1fr);
+  gap: 8px;
+  border-top: 1px solid var(--relay-border);
+  padding-top: 9px;
+}
+
+.relay-plan-stream article > span {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-plan-stream p,
+.relay-plan-stream small {
+  display: block;
+  margin: 2px 0;
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-dialog-comment {
+  margin-top: 10px;
+  border-left: 2px solid var(--relay-info);
+  background: var(--relay-info-soft);
+  padding: 8px 10px;
+  font-size: 10px;
+}
+
+.relay-dialog-comment p {
+  margin: 3px 0 0;
+}
+
+.relay-evidence-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 14px;
+  margin-bottom: 12px;
+  font-size: 11px;
+}
+
+.relay-evidence-summary .button {
+  margin-left: auto;
+}
+
+.relay-dialog-commit,
+.relay-dialog-test {
+  display: grid;
+  align-items: center;
+  gap: 9px;
+  border-top: 1px solid var(--relay-border);
+  padding: 9px 0;
+}
+
+.relay-dialog-commit {
+  grid-template-columns: 17px minmax(0, 1fr) auto;
+}
+
+.relay-dialog-commit p {
+  margin: 2px 0 0;
+  color: var(--relay-muted);
+  font-size: 10px;
+}
+
+.relay-dialog-commit code,
+.relay-dialog-test code {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-dialog-test {
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+}
+
+.relay-dialog-test > i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--relay-subtle);
+}
+
+.relay-dialog-test > span {
+  color: var(--relay-muted);
+  font: 9px var(--relay-font-mono);
+}
+
+.relay-phase-composer {
+  border-top: 1px solid var(--relay-border);
+  background: var(--relay-surface);
+  padding: 10px 13px;
+}
+
+.relay-phase-composer textarea {
+  width: 100%;
+  resize: vertical;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--relay-fg);
+  font-size: 12px;
+}
+
+.relay-phase-composer > footer {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.relay-phase-composer > footer > div {
+  display: grid;
+  gap: 3px;
+}
+
+.relay-phase-composer span,
+.relay-phase-composer small {
+  color: var(--relay-muted);
+  font: 8px var(--relay-font-mono);
+}
+
+.relay-phase-composer small[role="alert"] {
+  color: var(--relay-danger);
+}
+
+.relay-phase-composer select {
+  min-height: 28px;
+  border: 1px solid var(--relay-border);
+  border-radius: var(--relay-radius-sm);
+  background: var(--relay-bg);
+  color: var(--relay-muted);
+  padding: 3px 24px 3px 7px;
+  font-size: 9px;
+}
+
+.relay-phase-advance {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid var(--relay-border);
+  background: var(--relay-accent-soft);
+  padding: 11px 14px;
+}
+
+.relay-phase-advance strong {
+  font-size: 11px;
+}
+
+.relay-phase-advance p {
+  margin: 2px 0 0;
+  color: var(--relay-muted);
+  font-size: 9px;
+}
+
+.relay-advance-action {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+  gap: 3px;
+}
+
+.relay-advance-action small {
+  max-width: 280px;
+  color: var(--relay-danger);
+  font-size: 9px;
+}
+
+.relay-dialog-activity {
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--relay-surface);
+  padding: 17px 17px 22px;
+}
+
+.relay-dialog-activity > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.relay-dialog-activity h2 {
+  margin: 0;
+  font-size: 13px;
+}
+
+.relay-dialog-activity .relay-runtime {
+  font-size: 8px;
+}
+
+.relay-activity-current {
+  display: grid;
+  margin: 13px 0 16px;
+  border-left: 2px solid var(--relay-accent);
+  background: var(--relay-accent-soft);
+  padding: 9px 11px;
+}
+
+.relay-activity-current span,
+.relay-activity-current small {
+  color: var(--relay-muted);
+  font: 8px var(--relay-font-mono);
+  text-transform: uppercase;
+}
+
+.relay-activity-current strong {
+  margin: 2px 0;
+  font-size: 12px;
+}
+
+.relay-dialog-activity-list {
+  display: grid;
+}
+
+.relay-phase-confirm,
+.relay-delete-confirm {
+  width: min(470px, calc(100vw - 28px));
+}
+
+.relay-phase-confirm > p,
+.relay-delete-confirm > p {
+  color: var(--relay-muted);
+  font-size: 11px;
+}
+
 .relay-global-feed {
   display: grid;
   gap: 7px;
@@ -2766,5 +3491,94 @@ textarea.field {
   .relay-agent-state,
   .relay-top-actions .button {
     display: none;
+  }
+
+  .relay-task-dialog-layer {
+    padding: 0;
+  }
+
+  .relay-task-dialog {
+    width: 100vw;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .relay-task-dialog-head {
+    align-items: flex-start;
+    padding: 14px;
+  }
+
+  .relay-task-dialog-head h1 {
+    font-size: 19px;
+  }
+
+  .relay-task-dialog-controls .button:not(.relay-dialog-close) {
+    width: 32px;
+    overflow: hidden;
+    justify-content: flex-start;
+    gap: 20px;
+    padding-inline: 9px;
+    white-space: nowrap;
+  }
+
+  .relay-phase-tabs {
+    grid-template-columns: repeat(6, 95px);
+    justify-content: start;
+    padding-inline: 5px;
+  }
+
+  .relay-task-dialog-layout {
+    display: block;
+    overflow-y: auto;
+  }
+
+  .relay-phase-workspace {
+    border-right: 0;
+  }
+
+  .relay-phase-conversation {
+    height: auto;
+    min-height: calc(100dvh - 190px);
+  }
+
+  .relay-phase-conversation-head,
+  .relay-conversation-stream {
+    padding-inline: 14px;
+  }
+
+  .relay-conversation-stream {
+    min-height: 320px;
+    overflow-y: visible;
+  }
+
+  .relay-agent-feed-scroll {
+    max-height: 300px;
+  }
+
+  .relay-phase-composer > footer,
+  .relay-phase-advance {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .relay-phase-composer .button,
+  .relay-phase-advance .button,
+  .relay-advance-action {
+    width: 100%;
+  }
+
+  .relay-dialog-activity {
+    border-top: 1px solid var(--relay-border);
+    padding: 18px 14px 28px;
+  }
+
+  .relay-evidence-summary .button {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .relay-card-drag-handle {
+    opacity: 1;
   }
 }

@@ -37,7 +37,7 @@ export function TaskForm({
       setError(result.error ?? "Unable to create task");
       return;
     }
-    router.push(`/tasks/${result.id}?tab=conversation`);
+    router.push(`/board?task=${result.id}&phase=refine`);
     router.refresh();
   }
 

@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
     "@node-rs/argon2": "^2.0.2",
     "@relay/db": "workspace:*",
     "@relay/domain": "workspace:*",

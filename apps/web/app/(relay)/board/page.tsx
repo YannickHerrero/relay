@@ -1,23 +1,29 @@
 import { AlertCircle, Bot, Filter, Plus, Search } from "lucide-react";
 import Link from "next/link";
 
-import { projects, taskCommits, tasks, testRuns } from "@relay/db";
-import { taskStageSchema, type TaskStage } from "@relay/domain";
-import { and, desc, eq, like, or, type SQL } from "drizzle-orm";
+import {
+  planVersions,
+  projects,
+  requirementDrafts,
+  taskCommits,
+  taskEvents,
+  tasks,
+  testRuns,
+} from "@relay/db";
+import {
+  refinedRequirementSchema,
+  taskPhaseForStage,
+  taskStageSchema,
+  type TaskPhase,
+} from "@relay/domain";
+import { and, desc, eq, inArray, like, or, type SQL } from "drizzle-orm";
 
+import { TaskWorkspaceDialog } from "@/components/task-workspace-dialog";
+import { Workboard, type BoardTask } from "@/components/workboard";
 import { database } from "@/server/database";
+import { loadTaskWorkspace } from "@/server/task-workspace";
 
 export const dynamic = "force-dynamic";
-
-const stages: Array<{ id: TaskStage; label: string }> = [
-  { id: "refinement", label: "Refinement" },
-  { id: "planning", label: "Planning" },
-  { id: "implementation", label: "Implementation" },
-  { id: "review", label: "Review" },
-  { id: "ready_to_deploy", label: "Ready to Deploy" },
-  { id: "deploying", label: "Deploying" },
-  { id: "done", label: "Done" },
-];
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -28,6 +34,8 @@ export default async function BoardPage({ searchParams }: { searchParams: Search
   const priority = typeof query.priority === "string" ? query.priority : "";
   const attention = query.view === "attention";
   const active = query.view === "active";
+  const selectedTaskId = typeof query.task === "string" ? query.task : undefined;
+  const selectedPhase = typeof query.phase === "string" ? query.phase : undefined;
   const conditions: SQL[] = [];
   if (search) conditions.push(like(tasks.title, `%${search}%`));
   if (project) conditions.push(eq(tasks.projectId, project));
@@ -53,11 +61,60 @@ export default async function BoardPage({ searchParams }: { searchParams: Search
   const projectRows = db.select().from(projects).orderBy(projects.name).all();
   const commits = db.select().from(taskCommits).all();
   const tests = db.select().from(testRuns).orderBy(desc(testRuns.startedAt)).all();
+  const drafts = db.select().from(requirementDrafts).all();
+  const plans = db.select().from(planVersions).orderBy(desc(planVersions.version)).all();
+  const readyEvents = db
+    .select()
+    .from(taskEvents)
+    .where(
+      inArray(taskEvents.type, [
+        "implementation.ready_for_review",
+        "review.changes_ready_for_review",
+      ]),
+    )
+    .all();
   const commitCounts = new Map<string, number>();
   for (const commit of commits)
     commitCounts.set(commit.taskId, (commitCounts.get(commit.taskId) ?? 0) + 1);
   const latestTest = new Map<string, (typeof tests)[number]>();
   for (const test of tests) if (!latestTest.has(test.taskId)) latestTest.set(test.taskId, test);
+  const latestPlanTaskIds = new Set(plans.map((plan) => plan.taskId));
+  const readyTaskIds = new Set(readyEvents.map((event) => event.taskId));
+  const requirements = new Map(
+    drafts.map((draft) => [draft.taskId, refinedRequirementSchema.safeParse(draft.content)]),
+  );
+  const boardTasks: BoardTask[] = rows.map(({ task, project: taskProject }) => {
+    const stage = taskStageSchema.parse(task.stage);
+    const phase = taskPhaseForStage(stage);
+    return {
+      id: task.id,
+      projectName: taskProject.name,
+      type: task.type,
+      priority: task.priority,
+      title: task.title,
+      phase,
+      stage,
+      runtimeStatus: task.runtimeStatus,
+      lastActivityAt: task.lastActivityAt,
+      currentPlanCommit: task.currentPlanCommit,
+      commits: commitCounts.get(task.id) ?? 0,
+      testStatus: latestTest.get(task.id)?.status,
+      advance: boardAdvance(
+        task,
+        phase,
+        requirements.get(task.id),
+        latestPlanTaskIds,
+        readyTaskIds,
+      ),
+    };
+  });
+  const workspace = selectedTaskId ? loadTaskWorkspace(selectedTaskId) : undefined;
+  const queryString = boardQueryString({
+    search,
+    project,
+    priority,
+    view: attention ? "attention" : active ? "active" : "",
+  });
 
   return (
     <div className="relay-board-page">
@@ -127,103 +184,73 @@ export default async function BoardPage({ searchParams }: { searchParams: Search
           </Link>
         ) : null}
       </form>
-      <section className="relay-board" aria-label="Relay task board">
-        {stages.map((stage) => {
-          const stageRows = rows.filter(
-            (row) => taskStageSchema.parse(row.task.stage) === stage.id,
-          );
-          return (
-            <section className="relay-column" key={stage.id} aria-labelledby={`column-${stage.id}`}>
-              <header>
-                <h2 id={`column-${stage.id}`}>{stage.label}</h2>
-                <span>{String(stageRows.length).padStart(2, "0")}</span>
-              </header>
-              <div className="relay-column-cards">
-                {stageRows.map(({ task, project: taskProject }) => (
-                  <Link
-                    className="surface relay-task-card"
-                    href={`/tasks/${task.id}`}
-                    key={task.id}
-                  >
-                    <div className="relay-card-project">
-                      <span>{taskProject.name}</span>
-                      <span>{task.type}</span>
-                    </div>
-                    <h3>{task.title}</h3>
-                    <div className="relay-card-badges">
-                      <span className={`relay-priority priority-${task.priority}`}>
-                        {task.priority}
-                      </span>
-                      {task.runtimeStatus === "blocked" || task.runtimeStatus === "failed" ? (
-                        <span className="relay-blocked">{task.runtimeStatus}</span>
-                      ) : null}
-                    </div>
-                    <div className="relay-card-runtime">
-                      <span className={`relay-runtime runtime-${task.runtimeStatus}`}>
-                        <i />
-                        {runtimeLabel(task.runtimeStatus)}
-                      </span>
-                      <time dateTime={task.lastActivityAt}>
-                        {relativeTime(task.lastActivityAt)}
-                      </time>
-                    </div>
-                    {task.stage === "implementation" ||
-                    task.stage === "planning" ||
-                    task.stage === "deploying" ? (
-                      <div className="relay-progress">
-                        <i style={{ width: `${progress(task.stage, task.currentPlanCommit)}%` }} />
-                      </div>
-                    ) : null}
-                    <div className="relay-card-footer">
-                      <span>{commitCounts.get(task.id) ?? 0} commits</span>
-                      <span>{testLabel(latestTest.get(task.id)?.status)}</span>
-                    </div>
-                  </Link>
-                ))}
-                {!stageRows.length ? <div className="relay-column-empty">No tasks</div> : null}
-              </div>
-            </section>
-          );
-        })}
-      </section>
+      <Workboard tasks={boardTasks} queryString={queryString} />
+      {workspace ? (
+        <TaskWorkspaceDialog workspace={workspace} requestedPhase={selectedPhase} />
+      ) : null}
     </div>
   );
 }
 
-function runtimeLabel(value: string): string {
-  return (
-    (
-      {
-        idle: "idle",
-        agent_running: "agent running",
-        waiting_for_user: "needs input",
-        blocked: "blocked",
-        failed: "failed",
-        stopped: "stopped",
-      } as Record<string, string>
-    )[value] ?? value
-  );
+function boardAdvance(
+  task: typeof tasks.$inferSelect,
+  phase: TaskPhase,
+  requirement: ReturnType<typeof refinedRequirementSchema.safeParse> | undefined,
+  planTaskIds: Set<string>,
+  readyTaskIds: Set<string>,
+): BoardTask["advance"] {
+  if (["agent_running", "failed", "blocked"].includes(task.runtimeStatus)) return undefined;
+  if (phase === "refine" && requirement?.success) {
+    const blocking = requirement.data.unresolvedQuestions.some(
+      (question) => question.blocking && question.status === "open",
+    );
+    if (!blocking)
+      return {
+        destination: "planning",
+        phase: "plan",
+        label: "Approve & start planning",
+        description: "Freeze the current requirement and begin technical planning.",
+      };
+  }
+  if (phase === "plan" && planTaskIds.has(task.id))
+    return {
+      destination: "implementation",
+      phase: "build",
+      label: "Approve & start implementation",
+      description: "Approve the plan and create its isolated implementation worktree.",
+    };
+  if (phase === "build" && task.runtimeStatus === "waiting_for_user" && readyTaskIds.has(task.id))
+    return {
+      destination: "review",
+      phase: "review",
+      label: "Move to review",
+      description: "Implementation and validation have completed successfully.",
+    };
+  if (phase === "review")
+    return {
+      destination: "ready_to_deploy",
+      phase: "deploy",
+      label: "Approve for deployment",
+      description: "Approve the reviewed revision without running a deployment command.",
+    };
+  return undefined;
 }
 
-function relativeTime(value: string): string {
-  const seconds = Math.max(0, Math.round((Date.now() - new Date(value).getTime()) / 1000));
-  if (seconds < 60) return "now";
-  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
-  if (seconds < 86_400) return `${Math.floor(seconds / 3600)}h ago`;
-  return `${Math.floor(seconds / 86_400)}d ago`;
-}
-
-function testLabel(status?: string): string {
-  if (!status) return "— tests";
-  return status === "passed"
-    ? "tests passing"
-    : status === "failed"
-      ? "tests failed"
-      : "tests running";
-}
-
-function progress(stage: string, current: number): number {
-  if (stage === "planning") return 35;
-  if (stage === "deploying") return 65;
-  return Math.min(90, 15 + current * 18);
+function boardQueryString({
+  search,
+  project,
+  priority,
+  view,
+}: {
+  search: string;
+  project: string;
+  priority: string;
+  view: string;
+}): string {
+  const params = new URLSearchParams();
+  if (search) params.set("q", search);
+  if (project) params.set("project", project);
+  if (priority) params.set("priority", priority);
+  if (view) params.set("view", view);
+  return params.toString();
 }

@@ -107,6 +107,10 @@ impl Server {
             self.on_overlay_mouse(event);
             return;
         }
+        if self.mouse.drag.is_none() && self.sidebar_contains(event.column, event.row) {
+            self.on_sidebar_mouse(event);
+            return;
+        }
         let hit = self.hit(event.column, event.row);
         match event.kind {
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => self.on_wheel(event, hit),

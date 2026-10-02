@@ -69,6 +69,7 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         server.draw_resize_hint(area, &mut buf);
     }
 
+    server.draw_sidebar(area, &mut buf, now);
     if let Some((id, ghost)) = ghost
         && let Some(window) = server.windows.get(&id)
     {

@@ -8,46 +8,57 @@ use super::chrome;
 use super::overlay::{ListOverlay, Outcome, Row, Target};
 use crate::config::tilde;
 use crate::detect::process;
+use crate::model::{Location, WindowId};
 
 impl Server {
-    pub(super) fn agent_rows(&self) -> Vec<Row> {
-        let mut rows: Vec<(Option<std::time::Instant>, u64, Row)> = Vec::new();
+    /// Windows running an agent, first started first, with where they live.
+    pub(super) fn agent_windows(&self, current_space_only: bool) -> Vec<(WindowId, Location)> {
+        let mut found = Vec::new();
         for (s, space) in self.model.spaces.iter().enumerate() {
-            if self.agents_current_space && s != self.model.active {
+            if current_space_only && s != self.model.active {
                 continue;
             }
             for (n, ws) in space.workspaces.iter().enumerate() {
                 for id in ws.windows() {
-                    let Some(window) = self.windows.get(&id) else {
-                        continue;
-                    };
-                    let Some(agent) = window.tracker.agent() else {
-                        continue;
-                    };
-                    let status = window.tracker.status();
-                    let cwd = window
-                        .pane
-                        .pid()
-                        .and_then(process::cwd)
-                        .map(|p| tilde(&p))
-                        .unwrap_or_default();
-                    rows.push((
-                        window.tracker.started(),
-                        id,
-                        Row {
-                            label: format!("{} · {}", agent.name(), chrome::title(window)),
-                            detail: format!("{} · {} · {cwd}", space.name, n + 1),
-                            status,
-                            tag: "",
-                            target: Some(Target::Window(id)),
-                        },
-                    ));
+                    if let Some(window) = self.windows.get(&id)
+                        && window.tracker.agent().is_some()
+                    {
+                        let at = Location {
+                            space: s,
+                            workspace: n,
+                        };
+                        found.push((window.tracker.started(), id, at));
+                    }
                 }
             }
         }
         // First agent started on top, whatever its state.
-        rows.sort_by_key(|(started, id, _)| (*started, *id));
-        rows.into_iter().map(|(_, _, row)| row).collect()
+        found.sort_by_key(|(started, id, _)| (*started, *id));
+        found.into_iter().map(|(_, id, at)| (id, at)).collect()
+    }
+
+    pub(super) fn agent_rows(&self) -> Vec<Row> {
+        self.agent_windows(self.agents_current_space)
+            .into_iter()
+            .filter_map(|(id, at)| {
+                let window = self.windows.get(&id)?;
+                let agent = window.tracker.agent()?;
+                let space = &self.model.spaces[at.space];
+                let cwd = window
+                    .pane
+                    .pid()
+                    .and_then(process::cwd)
+                    .map(|p| tilde(&p))
+                    .unwrap_or_default();
+                Some(Row {
+                    label: format!("{} · {}", agent.name(), chrome::title(window)),
+                    detail: format!("{} · {} · {cwd}", space.name, at.workspace + 1),
+                    status: window.tracker.status(),
+                    tag: "",
+                    target: Some(Target::Window(id)),
+                })
+            })
+            .collect()
     }
 
     pub(super) fn agents_key(&mut self, overlay: &mut ListOverlay, key: KeyEvent) -> Outcome {

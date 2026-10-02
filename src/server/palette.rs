@@ -12,7 +12,7 @@ use crate::detect::process;
 use crate::keymap::DEFAULTS;
 
 /// Actions without a default key that the palette still offers.
-const UNBOUND_COMMANDS: &[&str] = &["space next", "window set-tiling"];
+const UNBOUND_COMMANDS: &[&str] = &["space next", "workspace next-active", "window set-tiling"];
 
 impl Server {
     pub(super) fn palette_rows(&self) -> Vec<Row> {

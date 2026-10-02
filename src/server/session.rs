@@ -73,6 +73,7 @@ impl Server {
             recent: self.model.recent,
             spaces,
             agents_current_space: self.agents_current_space,
+            sidebar: self.sidebar.open,
         }
     }
 
@@ -104,6 +105,7 @@ impl Server {
         model.recent = state.recent.min(model.spaces.len() - 1);
         self.model = model;
         self.agents_current_space = state.agents_current_space;
+        self.sidebar.open = state.sidebar;
 
         for (s, space) in state.spaces.iter().enumerate() {
             for (n, ws) in space.workspaces.iter().enumerate().take(WORKSPACES) {

@@ -105,6 +105,7 @@ impl Server {
             Action::Palette => self.open_list(ListKind::Palette),
             Action::Keybindings => self.open_list(ListKind::Keys),
             Action::Agents => self.open_list(ListKind::Agents),
+            Action::Sidebar => self.toggle_sidebar(),
             Action::SpacePicker => self.open_list(ListKind::Spaces),
             Action::Detach => self.detach(),
             Action::ConfigReload => self.reload_config(),

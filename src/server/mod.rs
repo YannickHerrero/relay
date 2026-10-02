@@ -16,6 +16,7 @@ mod palette;
 mod rename;
 mod render;
 mod session;
+mod sidebar;
 mod spaces;
 mod toast;
 mod whichkey;
@@ -41,7 +42,7 @@ use crate::protocol::{self, ClientMsg, Hello, Request, Response, ServerMsg};
 use crate::ui::output::Output;
 
 const FRAME: Duration = Duration::from_millis(8);
-const BAR_HEIGHT: u16 = 1;
+pub const BAR_HEIGHT: u16 = 1;
 
 pub enum Event {
     Pane(PaneEvent),
@@ -73,6 +74,13 @@ pub struct Window {
     pub pending_input: Option<String>,
     /// Set by the user; replaces the automatic title.
     pub name: Option<String>,
+}
+
+#[derive(Debug, Default)]
+struct SidebarState {
+    open: bool,
+    toggled: Option<Instant>,
+    scroll: usize,
 }
 
 enum Out {
@@ -108,6 +116,7 @@ pub struct Server {
     toast: Option<toast::Toast>,
     /// The agents dashboard lists only the current space's agents.
     agents_current_space: bool,
+    sidebar: SidebarState,
     /// Start of the shimmer cycle.
     epoch: Instant,
     /// Last state written to disk.
@@ -208,6 +217,7 @@ impl Server {
             rename: None,
             toast: None,
             agents_current_space: false,
+            sidebar: SidebarState::default(),
             epoch: Instant::now(),
             saved: None,
         }
@@ -388,7 +398,12 @@ impl Server {
     /// Area the windows of a workspace share.
     fn work_area(&self) -> Rect {
         let (cols, rows) = self.size;
-        Rect::new(0, BAR_HEIGHT, cols, rows.saturating_sub(BAR_HEIGHT))
+        Rect::new(
+            0,
+            BAR_HEIGHT,
+            cols - self.sidebar_width(),
+            rows.saturating_sub(BAR_HEIGHT),
+        )
     }
 
     /// Computes every window's rectangle and resizes its terminal.

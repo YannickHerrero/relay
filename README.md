@@ -49,7 +49,8 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | H J K L | Swap with the neighbor |
 | r | Resize mode: h / l width, j / k height (or arrows), Escape to leave |
 | 1…9 | Workspace |
-| s / Tab | Next occupied / recent workspace |
+| s | Agents sidebar |
+| Tab | Recent workspace |
 | d | Agents dashboard |
 | m, 1…9 | Move the window to a workspace and follow it |
 | o | Space picker |
@@ -77,6 +78,8 @@ Programs that ask for the mouse (lazygit, vim) get it; hold Shift to select or o
 ## Agents
 
 Each window running Claude Code or pi shows a badge: **working**, **needs you**, **done** (finished while you looked elsewhere) or **idle**. The bar counts them; a window waiting for an answer gets an orange border.
+
+`Ctrl+B s` slides in the agents sidebar on the right, as in herdr: one row per agent with its state (yellow working, red needs you, teal done, green idle), its space, its workspace when the space has several, and its name. Click a row to jump to it; `»` closes the sidebar. It stays open across restarts.
 
 `Ctrl+B d` opens the agents dashboard: every agent of every space, in the order they started. `j` / `k` select, Enter jumps to the agent's window, Tab switches between all spaces and the current one (remembered across restarts).
 
@@ -134,7 +137,7 @@ lazygit = "lazygit"
 "Leader Shift+Tab" = ""
 ```
 
-Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace rename`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `agents toggle`, `client detach`, `config reload`, `server stop`.
+Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace rename`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `agents toggle`, `sidebar toggle`, `client detach`, `config reload`, `server stop`.
 
 ## State
 

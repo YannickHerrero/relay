@@ -24,11 +24,11 @@ pub struct Slide {
     pub start: Instant,
 }
 
-fn ease_out(t: f32) -> f32 {
+pub fn ease_out(t: f32) -> f32 {
     1.0 - (1.0 - t.clamp(0.0, 1.0)).powi(3)
 }
 
-fn progress(start: Instant, duration: Duration, now: Instant) -> f32 {
+pub fn progress(start: Instant, duration: Duration, now: Instant) -> f32 {
     now.saturating_duration_since(start).as_secs_f32() / duration.as_secs_f32()
 }
 
@@ -113,7 +113,7 @@ impl Server {
             self.menu.as_ref().map(|m| m.opened),
         ];
         let fading = self.fades() && opened.into_iter().flatten().any(|t| now < t + FADE);
-        if sliding || fading {
+        if sliding || fading || self.sidebar_sliding(now) {
             return Some(ANIMATION_FRAME);
         }
         let shimmering = self.fades()

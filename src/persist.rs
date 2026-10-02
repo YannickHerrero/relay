@@ -17,6 +17,8 @@ pub struct State {
     pub spaces: Vec<SpaceState>,
     #[serde(default)]
     pub agents_current_space: bool,
+    #[serde(default)]
+    pub sidebar: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -94,6 +96,7 @@ mod tests {
             active: 0,
             recent: 0,
             agents_current_space: true,
+            sidebar: true,
             spaces: vec![SpaceState {
                 name: "main".into(),
                 cwd: "/tmp".into(),

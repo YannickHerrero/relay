@@ -183,7 +183,7 @@ impl Server {
             }
             Hit::Bar(Some(BarItem::Workspace(n))) if button == MouseButton::Left => {
                 self.model.space_mut().switch(n);
-                self.mark_focused_seen();
+                self.mark_visible_seen();
             }
             Hit::Content { window, col, row } => {
                 if self.model.focused() != Some(window) {

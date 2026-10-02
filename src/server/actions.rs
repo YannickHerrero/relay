@@ -103,21 +103,22 @@ impl Server {
 
     fn switch_workspace(&mut self, index: usize) {
         self.model.space_mut().switch(index);
-        self.mark_focused_seen();
+        self.mark_visible_seen();
     }
 
     pub(super) fn switch_space(&mut self, index: usize) {
         self.model.switch_space(index);
-        self.mark_focused_seen();
+        self.mark_visible_seen();
     }
 
-    pub(super) fn mark_focused_seen(&mut self) {
-        if let Some(window) = self
-            .model
-            .focused()
-            .and_then(|id| self.windows.get_mut(&id))
-        {
-            window.tracker.mark_seen();
+    /// Every window of the workspace on screen has been seen, which clears
+    /// their done badges.
+    pub(super) fn mark_visible_seen(&mut self) {
+        let visible: Vec<WindowId> = self.model.workspace().windows().collect();
+        for id in visible {
+            if let Some(window) = self.windows.get_mut(&id) {
+                window.tracker.mark_seen();
+            }
         }
         self.dirty = true;
     }

@@ -1,4 +1,5 @@
-//! The agents dashboard: every agent and its state, most urgent first.
+//! The agents dashboard: every agent and its state, in the order they
+//! started.
 
 use crossterm::event::{KeyCode, KeyEvent};
 
@@ -7,21 +8,10 @@ use super::chrome;
 use super::overlay::{ListOverlay, Outcome, Row, Target};
 use crate::config::tilde;
 use crate::detect::process;
-use crate::detect::tracker::Status;
-
-fn urgency(status: Option<Status>) -> u8 {
-    match status {
-        Some(Status::Blocked) => 0,
-        Some(Status::Working) => 1,
-        Some(Status::Done) => 2,
-        Some(Status::Idle) => 3,
-        _ => 4,
-    }
-}
 
 impl Server {
     pub(super) fn agent_rows(&self) -> Vec<Row> {
-        let mut rows: Vec<(u8, Row)> = Vec::new();
+        let mut rows: Vec<(Option<std::time::Instant>, u64, Row)> = Vec::new();
         for (s, space) in self.model.spaces.iter().enumerate() {
             if self.agents_current_space && s != self.model.active {
                 continue;
@@ -42,7 +32,8 @@ impl Server {
                         .map(|p| tilde(&p))
                         .unwrap_or_default();
                     rows.push((
-                        urgency(status),
+                        window.tracker.started(),
+                        id,
                         Row {
                             label: format!("{} · {}", agent.name(), chrome::title(window)),
                             detail: format!("{} · {} · {cwd}", space.name, n + 1),
@@ -54,8 +45,9 @@ impl Server {
                 }
             }
         }
-        rows.sort_by_key(|(u, _)| *u);
-        rows.into_iter().map(|(_, row)| row).collect()
+        // First agent started on top, whatever its state.
+        rows.sort_by_key(|(started, id, _)| (*started, *id));
+        rows.into_iter().map(|(_, _, row)| row).collect()
     }
 
     pub(super) fn agents_key(&mut self, overlay: &mut ListOverlay, key: KeyEvent) -> Outcome {
@@ -78,22 +70,5 @@ impl Server {
             _ => {}
         }
         Outcome::Keep
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn blocked_agents_come_first() {
-        let mut statuses = vec![
-            Some(Status::Idle),
-            Some(Status::Blocked),
-            Some(Status::Working),
-        ];
-        statuses.sort_by_key(|s| urgency(*s));
-        assert_eq!(statuses[0], Some(Status::Blocked));
-        assert_eq!(statuses[2], Some(Status::Idle));
     }
 }

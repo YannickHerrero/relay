@@ -43,6 +43,8 @@ pub struct Tracker {
     seen: bool,
     session: Option<String>,
     acquired_at: Option<Instant>,
+    /// When the current agent appeared, for a stable listing order.
+    started: Option<Instant>,
     pending_idle: Option<(Instant, u32)>,
     /// Pi reports its whole lifecycle; while it does, the screen is ignored.
     hook_state: Option<AgentState>,
@@ -55,6 +57,10 @@ pub struct Tracker {
 impl Tracker {
     pub fn agent(&self) -> Option<Agent> {
         self.agent
+    }
+
+    pub fn started(&self) -> Option<Instant> {
+        self.started
     }
 
     pub fn session(&self) -> Option<&str> {
@@ -97,6 +103,8 @@ impl Tracker {
                 self.restored = false;
                 if self.agent != Some(agent) {
                     self.agent = Some(agent);
+                    self.started = Some(now);
+                    self.started = Some(Instant::now());
                     self.state = Some(AgentState::Unknown);
                     self.acquired_at = Some(now);
                     self.hook_state = None;
@@ -159,6 +167,7 @@ impl Tracker {
         self.last_seq = seq;
         if self.agent != Some(agent) {
             self.agent = Some(agent);
+            self.started = Some(Instant::now());
             self.acquired_at = None;
             self.missed = 0;
         }
@@ -170,6 +179,7 @@ impl Tracker {
     pub fn on_hook_session(&mut self, agent: Agent, session: String) {
         if self.agent.is_none() {
             self.agent = Some(agent);
+            self.started = Some(Instant::now());
             self.state = Some(AgentState::Unknown);
             self.seen = true;
         }
@@ -255,6 +265,17 @@ mod tests {
         assert_eq!(t.status(), Some(Status::Working));
         t.on_hook_state(Agent::Pi, AgentState::Idle, 4, true);
         assert_eq!(t.status(), Some(Status::Working));
+    }
+
+    #[test]
+    fn start_time_survives_state_changes() {
+        let now = Instant::now();
+        let mut t = acquired(now);
+        let started = t.started();
+        assert!(started.is_some());
+        t.on_screen(&detection(AgentState::Working), now, true);
+        t.on_probe(Probe::Agent(Agent::Claude), now);
+        assert_eq!(t.started(), started);
     }
 
     #[test]

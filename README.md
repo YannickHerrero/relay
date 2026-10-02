@@ -77,7 +77,7 @@ Programs that ask for the mouse (lazygit, vim) get it; hold Shift to select or o
 
 Each window running Claude Code or pi shows a badge: **working**, **needs you**, **done** (finished while you looked elsewhere) or **idle**. The bar counts them; a window waiting for an answer gets an orange border.
 
-`Ctrl+B d` opens the agents dashboard: every agent of every space, most urgent first. `j` / `k` select, Enter jumps to the agent's window, Tab switches between all spaces and the current one (remembered across restarts).
+`Ctrl+B d` opens the agents dashboard: every agent of every space, in the order they started. `j` / `k` select, Enter jumps to the agent's window, Tab switches between all spaces and the current one (remembered across restarts).
 
 State is read from the screen with herdr's detection rules. Integrations add more:
 

@@ -65,10 +65,13 @@ impl Server {
     pub(super) fn bar_menu(&mut self, item: BarItem, x: u16) {
         let items = match item {
             BarItem::Workspace(n) => {
-                let mut items = vec![(
-                    format!("Go to workspace {}", n + 1),
-                    Action::Workspace(n + 1),
-                )];
+                let mut items = vec![
+                    (
+                        format!("Go to workspace {}", n + 1),
+                        Action::Workspace(n + 1),
+                    ),
+                    ("Rename".to_owned(), Action::WorkspaceRename(Some(n))),
+                ];
                 if self.model.focused().is_some() {
                     items.push((
                         "Move focused window here".to_owned(),

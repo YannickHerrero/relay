@@ -39,6 +39,8 @@ pub struct WorkspaceState {
     pub focused: Option<usize>,
     #[serde(default)]
     pub fullscreen: Option<usize>,
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -108,6 +110,7 @@ mod tests {
                     }],
                     focused: Some(0),
                     fullscreen: None,
+                    name: Some("tests".into()),
                 }],
             }],
         };

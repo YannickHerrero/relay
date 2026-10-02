@@ -42,6 +42,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | Enter | New terminal |
 | q | Close the window |
 | , | Rename the window (empty name restores the automatic title) |
+| w | Rename the workspace, shown as `3 - name` in the bar (empty name restores the number) |
 | f | Fullscreen |
 | t | Float / tile |
 | h j k l | Focus |
@@ -63,7 +64,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 - Drag a title bar: the window follows the pointer, even past the screen edges, and swaps with the window it is dropped on; drag a floating window by its title to move it, by its border to resize it.
 - Drag the border between two tiled windows to move the split.
 - The three dots in a title bar float, zoom and close the window.
-- Right-click a window (new terminal, fullscreen, float, rename, move, close) or a workspace for a menu.
+- Right-click a window (new terminal, fullscreen, float, rename, move, close) or a workspace (go to, rename, move the focused window there) for a menu.
 - The wheel scrolls back through history; typing returns to the bottom.
 - Drag to select, double-click for a word, triple-click for a line. The selection is copied to the clipboard through OSC 52 when the button is released, and a notification confirms it.
 
@@ -133,7 +134,7 @@ lazygit = "lazygit"
 "Leader Shift+Tab" = ""
 ```
 
-Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `agents toggle`, `client detach`, `config reload`, `server stop`.
+Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace rename`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `agents toggle`, `client detach`, `config reload`, `server stop`.
 
 ## State
 

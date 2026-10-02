@@ -4,6 +4,7 @@ use ratatui::layout::Rect;
 
 use super::Server;
 use super::overlay::ListKind;
+use super::rename::RenameTarget;
 use crate::actions::Action;
 use crate::detect;
 use crate::layout::{self, Axis};
@@ -58,7 +59,7 @@ impl Server {
             }
             Action::WindowRename => {
                 if let Some(id) = self.model.focused() {
-                    self.start_rename(id);
+                    self.start_rename(RenameTarget::Window(id));
                 }
             }
             Action::WindowMoveWorkspace { workspace, follow } => {
@@ -77,6 +78,13 @@ impl Server {
                 let n = WORKSPACES as i32;
                 let next = (self.model.space().active as i32 + step).rem_euclid(n);
                 self.switch_workspace(next as usize);
+            }
+            Action::WorkspaceRename(index) => {
+                let at = Location {
+                    space: self.model.active,
+                    workspace: index.unwrap_or(self.model.space().active),
+                };
+                self.start_rename(RenameTarget::Workspace(at));
             }
             Action::WorkspaceRecent => self.switch_workspace(self.model.space().recent),
             Action::SpaceNext => {

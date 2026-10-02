@@ -25,6 +25,8 @@ pub enum Action {
     /// Next or previous workspace number, wrapping between 9 and 1.
     WorkspaceStep(i32),
     WorkspaceRecent,
+    /// Renames a workspace of the current space, the active one when `None`.
+    WorkspaceRename(Option<usize>),
     SpaceNext,
     SpaceRecent,
     /// A program alias from the config, `terminal` being the shell.
@@ -80,6 +82,7 @@ impl Action {
             ["workspace", "next"] => Action::WorkspaceStep(1),
             ["workspace", "prev"] => Action::WorkspaceStep(-1),
             ["workspace", "recent"] => Action::WorkspaceRecent,
+            ["workspace", "rename"] => Action::WorkspaceRename(None),
             ["workspace", n] => Action::Workspace(workspace(n)?),
             ["space", "next"] => Action::SpaceNext,
             ["space", "recent"] => Action::SpaceRecent,
@@ -126,6 +129,7 @@ impl Action {
             Action::WorkspaceStep(1) => "Next workspace".into(),
             Action::WorkspaceStep(_) => "Previous workspace".into(),
             Action::WorkspaceRecent => "Recent workspace".into(),
+            Action::WorkspaceRename(_) => "Rename workspace".into(),
             Action::SpaceNext => "Next space".into(),
             Action::SpaceRecent => "Recent space".into(),
             Action::Spawn(alias) if alias == "terminal" => "New terminal".into(),

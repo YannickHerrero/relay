@@ -61,6 +61,7 @@ impl Server {
                             windows,
                             focused: index(ws.focused),
                             fullscreen: index(ws.fullscreen),
+                            name: ws.name.clone(),
                         }
                     })
                     .collect(),
@@ -141,6 +142,7 @@ impl Server {
                     restored.focused = Some(id);
                 }
                 restored.fullscreen = pick(ws.fullscreen);
+                restored.name = ws.name.clone();
             }
         }
         self.relayout();

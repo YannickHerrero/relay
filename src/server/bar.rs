@@ -107,7 +107,10 @@ impl Server {
             push(
                 &mut segments,
                 &mut x,
-                format!(" {}{mark}", n + 1),
+                match &ws.name {
+                    Some(name) => format!(" {} - {name}{mark}", n + 1),
+                    None => format!(" {}{mark}", n + 1),
+                },
                 style,
                 Some(BarItem::Workspace(n)),
             );

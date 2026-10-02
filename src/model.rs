@@ -16,6 +16,8 @@ pub struct Workspace {
     pub focused: Option<WindowId>,
     pub ratios: Vec<f32>,
     pub fullscreen: Option<WindowId>,
+    /// Shown after the number in the bar.
+    pub name: Option<String>,
 }
 
 impl Workspace {

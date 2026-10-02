@@ -1,28 +1,40 @@
-//! Naming a window: a one-line prompt over the screen.
+//! Naming a window or a workspace: a one-line prompt over the screen.
 
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 
 use super::{Server, chrome};
-use crate::model::WindowId;
+use crate::model::{Location, WindowId};
 use crate::ui::panel;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RenameTarget {
+    Window(WindowId),
+    Workspace(Location),
+}
 
 #[derive(Debug, Clone)]
 pub struct RenamePrompt {
-    pub window: WindowId,
+    pub target: RenameTarget,
     pub text: String,
 }
 
 impl Server {
-    pub(super) fn start_rename(&mut self, window: WindowId) {
-        let Some(w) = self.windows.get(&window) else {
-            return;
+    pub(super) fn start_rename(&mut self, target: RenameTarget) {
+        let text = match target {
+            RenameTarget::Window(id) => {
+                let Some(w) = self.windows.get(&id) else {
+                    return;
+                };
+                w.name.clone().unwrap_or_else(|| chrome::title(w))
+            }
+            RenameTarget::Workspace(at) => self.model.spaces[at.space].workspaces[at.workspace]
+                .name
+                .clone()
+                .unwrap_or_default(),
         };
-        self.rename = Some(RenamePrompt {
-            window,
-            text: w.name.clone().unwrap_or_else(|| chrome::title(w)),
-        });
+        self.rename = Some(RenamePrompt { target, text });
         self.dirty = true;
     }
 
@@ -33,10 +45,26 @@ impl Server {
         match key.code {
             KeyCode::Esc => self.rename = None,
             KeyCode::Enter => {
-                let name = prompt.text.trim().to_owned();
-                if let Some(window) = self.windows.get_mut(&prompt.window) {
-                    // An empty name goes back to the automatic title.
-                    window.name = (!name.is_empty()).then_some(name);
+                let text = prompt.text.trim().to_owned();
+                // An empty name goes back to the default: the automatic
+                // title, or the bare workspace number.
+                let name = (!text.is_empty()).then_some(text);
+                match prompt.target {
+                    RenameTarget::Window(id) => {
+                        if let Some(window) = self.windows.get_mut(&id) {
+                            window.name = name;
+                        }
+                    }
+                    RenameTarget::Workspace(at) => {
+                        if let Some(ws) = self
+                            .model
+                            .spaces
+                            .get_mut(at.space)
+                            .and_then(|s| s.workspaces.get_mut(at.workspace))
+                        {
+                            ws.name = name;
+                        }
+                    }
                 }
                 self.rename = None;
             }
@@ -65,12 +93,11 @@ impl Server {
             width,
             4,
         );
-        let inner = panel::draw(
-            rect,
-            "Rename window",
-            "⏎ save · empty resets · esc cancel",
-            buf,
-        );
+        let title = match prompt.target {
+            RenameTarget::Window(_) => "Rename window".to_owned(),
+            RenameTarget::Workspace(at) => format!("Rename workspace {}", at.workspace + 1),
+        };
+        let inner = panel::draw(rect, &title, "⏎ save · empty resets · esc cancel", buf);
         self.draw_input(inner, "❯", &prompt.text, buf);
     }
 }

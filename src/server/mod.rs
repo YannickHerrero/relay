@@ -84,8 +84,7 @@ pub struct Server {
     quit: bool,
     size: (u16, u16),
     leader: Option<input::Leader>,
-    /// Window whose program receives the rest of a mouse gesture.
-    mouse_owner: Option<WindowId>,
+    mouse: mouse::MouseState,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -172,7 +171,7 @@ impl Server {
             quit: false,
             size: (80, 24),
             leader: None,
-            mouse_owner: None,
+            mouse: Default::default(),
         }
     }
 
@@ -226,6 +225,10 @@ impl Server {
             Event::Pane(PaneEvent::Output(id, bytes)) => {
                 if let Some(window) = self.windows.get_mut(&id) {
                     window.pane.feed(&bytes);
+                    let copies = std::mem::take(&mut window.pane.clipboard);
+                    for text in copies {
+                        self.copy_to_clipboard(&text);
+                    }
                     self.dirty = true;
                 }
             }
@@ -439,6 +442,13 @@ impl Server {
         Location {
             space: self.model.active,
             workspace: self.model.space().active,
+        }
+    }
+
+    /// Bytes for the client terminal itself, outside any frame.
+    fn send_raw(&mut self, bytes: Vec<u8>) {
+        if let Some(client) = &self.client {
+            let _ = client.out.send(Out::Bytes(bytes));
         }
     }
 

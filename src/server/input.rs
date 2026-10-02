@@ -98,6 +98,7 @@ impl Server {
             let bytes = encode::key(&key, *window.pane.term.mode());
             if !bytes.is_empty() {
                 window.pane.term.scroll_display(Scroll::Bottom);
+                window.pane.term.selection = None;
                 window.pane.write(bytes);
             }
         }

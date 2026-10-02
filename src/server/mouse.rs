@@ -1,4 +1,8 @@
-use alacritty_terminal::grid::Scroll;
+use std::time::{Duration, Instant};
+
+use alacritty_terminal::grid::{Dimensions, Scroll};
+use alacritty_terminal::index::{Column, Line, Point, Side};
+use alacritty_terminal::selection::{Selection, SelectionType};
 use alacritty_terminal::term::TermMode;
 use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::{Position, Rect};
@@ -9,6 +13,21 @@ use crate::encode;
 use crate::model::WindowId;
 
 const WHEEL_LINES: i32 = 3;
+const MULTI_CLICK: Duration = Duration::from_millis(400);
+
+/// A mouse gesture in progress.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Drag {
+    /// The program in the window asked for the mouse and gets the gesture.
+    Forward(WindowId),
+    Select(WindowId),
+}
+
+#[derive(Debug, Default)]
+pub struct MouseState {
+    pub drag: Option<Drag>,
+    last_click: Option<(Instant, u16, u16, u8)>,
+}
 
 /// What lies under the pointer.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,14 +85,16 @@ impl Server {
         match event.kind {
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => self.on_wheel(event, hit),
             MouseEventKind::Down(button) => self.on_press(event, button, hit),
-            MouseEventKind::Drag(_) | MouseEventKind::Moved | MouseEventKind::Up(_) => {
-                if let Some(window) = self.mouse_owner {
-                    self.forward_mouse(window, event);
-                    if matches!(event.kind, MouseEventKind::Up(_)) {
-                        self.mouse_owner = None;
-                    }
-                }
-            }
+            MouseEventKind::Drag(_) | MouseEventKind::Moved => match self.mouse.drag {
+                Some(Drag::Forward(window)) => self.forward_mouse(window, event),
+                Some(Drag::Select(window)) => self.extend_selection(window, event),
+                None => {}
+            },
+            MouseEventKind::Up(_) => match self.mouse.drag.take() {
+                Some(Drag::Forward(window)) => self.forward_mouse(window, event),
+                Some(Drag::Select(window)) => self.finish_selection(window),
+                None => {}
+            },
             _ => {}
         }
         self.dirty = true;
@@ -110,7 +131,7 @@ impl Server {
                 self.model.space_mut().switch(n);
                 self.mark_focused_seen();
             }
-            Hit::Content { window, .. } => {
+            Hit::Content { window, col, row } => {
                 if self.model.focused() != Some(window) {
                     self.focus(window);
                 }
@@ -118,8 +139,10 @@ impl Server {
                 if mode.intersects(TermMode::MOUSE_MODE)
                     && !event.modifiers.contains(KeyModifiers::SHIFT)
                 {
-                    self.mouse_owner = Some(window);
+                    self.mouse.drag = Some(Drag::Forward(window));
                     self.forward_mouse(window, event);
+                } else if button == MouseButton::Left {
+                    self.start_selection(window, col, row);
                 }
             }
             Hit::Border { window } => self.focus(window),
@@ -152,4 +175,80 @@ impl Server {
             window.pane.write(bytes);
         }
     }
+
+    fn click_count(&mut self, x: u16, y: u16) -> u8 {
+        let now = Instant::now();
+        let count = match self.mouse.last_click {
+            Some((t, lx, ly, n)) if now - t < MULTI_CLICK && (lx, ly) == (x, y) => n % 3 + 1,
+            _ => 1,
+        };
+        self.mouse.last_click = Some((now, x, y, count));
+        count
+    }
+
+    fn start_selection(&mut self, id: WindowId, col: u16, row: u16) {
+        let count = self.click_count(col, row);
+        let Some(window) = self.windows.get_mut(&id) else {
+            return;
+        };
+        let term = &mut window.pane.term;
+        let point = viewport_point(term.grid().display_offset(), col, row);
+        let ty = match count {
+            2 => SelectionType::Semantic,
+            3 => SelectionType::Lines,
+            _ => SelectionType::Simple,
+        };
+        term.selection = Some(Selection::new(ty, point, Side::Left));
+        if ty != SelectionType::Simple
+            && let Some(selection) = &mut term.selection
+        {
+            selection.update(point, Side::Right);
+        }
+        self.mouse.drag = Some(Drag::Select(id));
+    }
+
+    fn extend_selection(&mut self, id: WindowId, event: MouseEvent) {
+        let Some(window) = self.windows.get_mut(&id) else {
+            return;
+        };
+        let area = inner(window.rect);
+        let col = event
+            .column
+            .saturating_sub(area.x)
+            .min(area.width.saturating_sub(1));
+        let row = event
+            .row
+            .saturating_sub(area.y)
+            .min(area.height.saturating_sub(1));
+        let term = &mut window.pane.term;
+        let point = viewport_point(term.grid().display_offset(), col, row);
+        if let Some(selection) = &mut term.selection {
+            selection.update(point, Side::Right);
+        }
+    }
+
+    fn finish_selection(&mut self, id: WindowId) {
+        let Some(window) = self.windows.get_mut(&id) else {
+            return;
+        };
+        let term = &mut window.pane.term;
+        match term.selection_to_string().filter(|t| !t.is_empty()) {
+            Some(text) => self.copy_to_clipboard(&text),
+            None => term.selection = None,
+        }
+    }
+
+    /// Puts text on the client terminal's clipboard (OSC 52).
+    pub(super) fn copy_to_clipboard(&mut self, text: &str) {
+        use base64::Engine;
+        let encoded = base64::engine::general_purpose::STANDARD.encode(text);
+        self.send_raw(format!("\x1b]52;c;{encoded}\x07").into_bytes());
+    }
+}
+
+fn viewport_point(display_offset: usize, col: u16, row: u16) -> Point {
+    Point::new(
+        Line(row as i32 - display_offset as i32),
+        Column(col as usize),
+    )
 }

@@ -109,7 +109,7 @@ motion = "full"            # none, basic (slides) or full (and fades, shimmer)
 shell = ""                 # empty means $SHELL
 
 [projects]
-roots = ["~/dev", "~/dev/peren"]
+roots = ["~/dev"]
 
 [programs]
 claude = "claude"
@@ -139,3 +139,7 @@ The server keeps its socket, log and `state.json` in `~/.local/state/relay/`. Pr
 - The window look, animations and palette take after [tuios](https://github.com/Gaurav-Gosain/tuios).
 - Concepts and keys come from Illium.
 - Terminal emulation is [alacritty_terminal](https://github.com/alacritty/alacritty).
+
+## License
+
+relay is licensed under the [Apache License 2.0](LICENSE).

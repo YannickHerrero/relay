@@ -2,6 +2,7 @@
 name = "relay"
 version = "0.1.0"
 edition = "2024"
+license = "Apache-2.0"
 description = "Tiling terminal window manager for coding agents"
 
 [dependencies]

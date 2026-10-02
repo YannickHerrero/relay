@@ -202,8 +202,8 @@ impl Server {
 impl Server {
     pub(super) fn draw_resize_hint(&self, area: Rect, buf: &mut Buffer) {
         let rows = [
-            ("j  ;", "width −  +"),
-            ("k  l", "height +  −"),
+            ("h  l", "width −  +"),
+            ("j  k", "height +  −"),
             ("esc", "done"),
         ];
         let width = 26.min(area.width);

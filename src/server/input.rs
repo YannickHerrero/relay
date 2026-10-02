@@ -124,15 +124,15 @@ impl Server {
         }
     }
 
-    /// j and ; shrink and grow the width, k and l grow and shrink the
-    /// height, like i3's resize mode; arrows work too.
+    /// h and l shrink and grow the width, j and k grow and shrink the
+    /// height; arrows work too.
     fn on_resize_key(&mut self, key: KeyEvent, chord: Option<Chord>) {
         const STEP: f32 = 0.05;
         let step = match key.code {
-            KeyCode::Char('j') | KeyCode::Left => Some((Axis::Vertical, -STEP)),
-            KeyCode::Char(';') | KeyCode::Right => Some((Axis::Vertical, STEP)),
-            KeyCode::Char('k') | KeyCode::Down => Some((Axis::Horizontal, STEP)),
-            KeyCode::Char('l') | KeyCode::Up => Some((Axis::Horizontal, -STEP)),
+            KeyCode::Char('h') | KeyCode::Left => Some((Axis::Vertical, -STEP)),
+            KeyCode::Char('l') | KeyCode::Right => Some((Axis::Vertical, STEP)),
+            KeyCode::Char('j') | KeyCode::Down => Some((Axis::Horizontal, STEP)),
+            KeyCode::Char('k') | KeyCode::Up => Some((Axis::Horizontal, -STEP)),
             _ => None,
         };
         if let Some((axis, delta)) = step {

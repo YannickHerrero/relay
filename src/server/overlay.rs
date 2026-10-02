@@ -20,6 +20,7 @@ use crate::ui::{fuzzy, panel, theme};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ListKind {
     Palette,
+    Keys,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -157,6 +158,7 @@ impl Server {
     pub(super) fn list_rows(&self, overlay: &ListOverlay) -> Vec<Row> {
         let rows = match overlay.kind {
             ListKind::Palette => self.palette_rows(),
+            ListKind::Keys => self.key_rows(),
         };
         filter(rows, &overlay.query)
     }
@@ -286,6 +288,7 @@ impl Server {
         let (panel_rect, list) = geometry(area, rows.len());
         let (title, footer) = match overlay.kind {
             ListKind::Palette => ("Palette", "⏎ run · @w @b @d filter · esc close"),
+            ListKind::Keys => ("Keybindings", "type to filter · ⏎ run · esc close"),
         };
         let inner = panel::draw(panel_rect, title, footer, buf);
         self.draw_input(inner, "❯", &overlay.query, buf);

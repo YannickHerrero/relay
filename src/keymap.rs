@@ -134,7 +134,7 @@ pub struct Keymap {
     pub direct: HashMap<Chord, Action>,
     pub tree: Node,
     /// Every binding in display order, for the keybindings viewer.
-    pub listing: Vec<(String, String)>,
+    pub listing: Vec<(String, Action)>,
 }
 
 #[derive(serde::Deserialize, Default)]
@@ -193,7 +193,7 @@ impl Keymap {
                     .collect::<Vec<_>>()
                     .join(" "),
             };
-            keymap.listing.push((shown, action.describe()));
+            keymap.listing.push((shown, action.clone()));
             match steps {
                 Sequence::Direct(chord) => {
                     keymap.direct.insert(chord, action);

@@ -59,7 +59,7 @@ impl Server {
                 .keymap
                 .listing
                 .iter()
-                .find(|(_, d)| *d == label)
+                .find(|(_, a)| *a == action)
                 .map(|(k, _)| k.clone())
                 .unwrap_or_default();
             rows.push(Row {
@@ -138,5 +138,19 @@ impl Server {
         self.switch_space(index);
         self.spawn_shell(path.to_path_buf(), None);
         index
+    }
+
+    pub(super) fn key_rows(&self) -> Vec<Row> {
+        self.keymap
+            .listing
+            .iter()
+            .map(|(keys, action)| Row {
+                label: action.describe(),
+                detail: keys.clone(),
+                status: None,
+                tag: "",
+                target: Some(Target::Action(action.clone())),
+            })
+            .collect()
     }
 }

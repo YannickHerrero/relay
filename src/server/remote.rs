@@ -14,12 +14,20 @@ use tungstenite::{Message, WebSocket};
 
 use super::{Event, Server};
 use crate::config;
+use crate::model::WindowId;
 use crate::protocol::{Command, REMOTE_VERSION, RemoteHello, Request, Response, Update};
 
 const HELLO_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long a connection waits for a message before writing what the server
 /// queued for it.
 const POLL: Duration = Duration::from_millis(50);
+
+/// A remote client that passed its hello.
+pub struct Remote {
+    pub out: Sender<Update>,
+    /// The window whose conversation it follows.
+    pub viewing: Option<WindowId>,
+}
 
 pub struct Hello {
     pub id: u64,
@@ -182,6 +190,7 @@ fn allowed(request: &Request) -> bool {
             | Request::SendText { .. }
             | Request::SendKeys { .. }
             | Request::View { .. }
+            | Request::Transcript { .. }
     )
 }
 
@@ -218,7 +227,7 @@ impl Server {
         }
         let state = self.share_state();
         if out.send(state).is_ok() {
-            self.remotes.insert(id, out);
+            self.remotes.insert(id, Remote { out, viewing: None });
         }
     }
 
@@ -226,7 +235,12 @@ impl Server {
         if !self.remotes.contains_key(&id) {
             return;
         }
-        let result = if allowed(&command.request) {
+        let result = if let Request::View { window } = &command.request {
+            match self.view(id, window.as_deref()) {
+                Ok(value) => Response::Ok(value),
+                Err(e) => Response::Error(e.to_string()),
+            }
+        } else if allowed(&command.request) {
             match self.api(command.request) {
                 Ok(value) => Response::Ok(value),
                 Err(e) => Response::Error(e.to_string()),
@@ -234,8 +248,8 @@ impl Server {
         } else {
             Response::Error("not available to remote clients".into())
         };
-        if let Some(out) = self.remotes.get(&id) {
-            let _ = out.send(Update::Reply {
+        if let Some(remote) = self.remotes.get(&id) {
+            let _ = remote.out.send(Update::Reply {
                 id: command.id,
                 result,
             });
@@ -257,8 +271,8 @@ impl Server {
             let token = new_token()?;
             save_token(&token)?;
             self.remote_token = Some(token);
-            for (_, out) in self.remotes.drain() {
-                let _ = out.send(closed("token revoked"));
+            for (_, remote) in self.remotes.drain() {
+                let _ = remote.out.send(closed("token revoked"));
             }
         }
         let name = if remote.name.is_empty() {

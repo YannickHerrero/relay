@@ -38,7 +38,8 @@ impl Server {
             // A client whose connection thread ended has disconnected.
             self.subscribers
                 .retain(|tx: &Sender<Update>| tx.send(update.clone()).is_ok());
-            self.remotes.retain(|_, tx| tx.send(update.clone()).is_ok());
+            self.remotes
+                .retain(|_, remote| remote.out.send(update.clone()).is_ok());
             self.published = Some(update.clone());
         }
         update

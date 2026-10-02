@@ -132,7 +132,8 @@ impl Server {
                     "idle" => AgentState::Idle,
                     other => bail!("unknown state: {other}"),
                 };
-                let visible = self.client.is_some() && self.model.workspace().contains(id);
+                let visible = (self.client.is_some() && self.model.workspace().contains(id))
+                    || self.viewed().contains(&id);
                 let window = self
                     .windows
                     .get_mut(&id)
@@ -140,15 +141,12 @@ impl Server {
                 window.tracker.on_hook_state(agent, state, seq, visible);
                 Ok(Value::Null)
             }
-            Request::View { window } => {
-                let id = parse_window(&window)?;
-                let window = self
-                    .windows
-                    .get_mut(&id)
-                    .with_context(|| format!("no window {window}"))?;
-                window.tracker.mark_seen();
-                Ok(Value::Null)
-            }
+            Request::View { .. } => bail!("only remote clients view windows"),
+            Request::Transcript {
+                window,
+                before,
+                limit,
+            } => self.transcript_page(&window, before, limit),
             Request::RemotePairing { revoke } => self.remote_pairing(revoke),
             Request::ReloadConfig => {
                 self.reload_config();
@@ -186,7 +184,7 @@ impl Server {
                     let Some(window) = self.windows.get(&id) else {
                         continue;
                     };
-                    list.push(json!({
+                    let mut entry = json!({
                         "id": format!("w{id}"),
                         "space": space.name,
                         "workspace": n + 1,
@@ -196,7 +194,13 @@ impl Server {
                         "cwd": window.pane.pid().and_then(process::cwd).map(|p| tilde(&p)),
                         "focused": s == self.model.active && n == space.active && ws.focused == Some(id),
                         "floating": ws.floating.contains(&id),
-                    }));
+                    });
+                    if let (Value::Object(entry), Value::Object(extra)) =
+                        (&mut entry, self.conversation_fields(id))
+                    {
+                        entry.extend(extra);
+                    }
+                    list.push(entry);
                 }
             }
         }

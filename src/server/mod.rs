@@ -7,6 +7,7 @@ mod agents_view;
 mod api;
 mod bar;
 mod chrome;
+mod conversation;
 mod input;
 mod menu;
 mod motion;
@@ -62,6 +63,11 @@ pub enum Event {
     RemoteHello(remote::Hello),
     Remote(u64, protocol::Command),
     RemoteGone(u64),
+    Transcript {
+        window: WindowId,
+        session: String,
+        change: crate::transcript::Change,
+    },
 }
 
 pub struct Window {
@@ -80,6 +86,9 @@ pub struct Window {
     pub pending_input: Option<String>,
     /// Set by the user; replaces the automatic title.
     pub name: Option<String>,
+    /// The agent's session, read for remote clients.
+    pub conversation: Option<conversation::Followed>,
+    pub status_since: conversation::StatusSince,
 }
 
 #[derive(Debug, Default)]
@@ -133,7 +142,7 @@ pub struct Server {
     /// Set while remote access is on.
     remote_token: Option<String>,
     /// Remote clients that passed their hello.
-    remotes: HashMap<u64, Sender<Update>>,
+    remotes: HashMap<u64, remote::Remote>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -274,6 +283,7 @@ impl Server {
             if last_detect.elapsed() >= agents::DETECT_INTERVAL {
                 last_detect = Instant::now();
                 self.detect_agents(last_detect);
+                self.follow_conversations();
                 self.publish();
             }
             let now_minute = chrono::Local::now().format("%H:%M").to_string();
@@ -351,6 +361,11 @@ impl Server {
             Event::RemoteGone(id) => {
                 self.remotes.remove(&id);
             }
+            Event::Transcript {
+                window,
+                session,
+                change,
+            } => self.on_transcript(window, session, change),
             Event::Api(request, reply) => {
                 let response = match self.api(request) {
                     Ok(value) => Response::Ok(value),
@@ -557,6 +572,8 @@ impl Server {
                 slide: None,
                 pending_input: None,
                 name: None,
+                conversation: None,
+                status_since: conversation::StatusSince::new(),
             },
         );
         self.model.add(at, id, popup || floating);

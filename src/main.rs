@@ -104,6 +104,15 @@ enum Cmd {
     },
     /// Print the state as a JSON line now and whenever it changes.
     Events,
+    /// Print the conversation of an agent's window, as remote clients get it.
+    Transcript {
+        window: String,
+        /// Entries before this index; defaults to the end.
+        #[arg(long)]
+        before: Option<usize>,
+        #[arg(long)]
+        limit: Option<usize>,
+    },
     /// Reload config.toml and keybindings.toml.
     Reload,
     /// Remote access for phones and tablets.
@@ -207,6 +216,15 @@ fn main() -> anyhow::Result<()> {
             seq,
         },
         Cmd::Events => return follow_events(),
+        Cmd::Transcript {
+            window,
+            before,
+            limit,
+        } => Request::Transcript {
+            window,
+            before,
+            limit,
+        },
         Cmd::Reload => Request::ReloadConfig,
         Cmd::Remote {
             action: RemoteCmd::Pair { revoke },

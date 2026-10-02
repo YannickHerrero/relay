@@ -31,11 +31,12 @@ impl Default for DetectState {
 
 impl Server {
     pub(super) fn detect_agents(&mut self, now: Instant) {
-        let visible: Vec<WindowId> = if self.client.is_some() {
+        let mut visible: Vec<WindowId> = if self.client.is_some() {
             self.model.workspace().windows().collect()
         } else {
             Vec::new()
         };
+        visible.extend(self.viewed());
         for (id, window) in &mut self.windows {
             let before = window.tracker.status();
             if let Some(shell) = window.pane.pid() {

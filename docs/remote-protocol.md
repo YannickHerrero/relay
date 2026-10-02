@@ -53,13 +53,22 @@ Every message has an `event` field.
       "status": "working",
       "cwd": "~/dev/relay",
       "focused": false,
-      "floating": false
+      "floating": false,
+      "state_since": "2026-10-02T09:41:12.204Z",
+      "last_activity": "2026-10-02T09:41:40.789Z",
+      "last_message": {"role": "assistant", "text": "Heartbeat added. The server now sends…", "at": "2026-10-02T09:41:40.789Z"}
     }
   ]
 }
 ```
 
-`agent` is `claude`, `pi` or null. `status` is `working`, `blocked` (needs you), `done` (finished, not looked at yet), `idle`, `unknown`, or null for windows without an agent. `workspace` counts from 1.
+`agent` is `claude`, `pi` or null. `status` is `working`, `blocked` (needs you), `done` (finished, not looked at yet), `idle`, `unknown`, or null for windows without an agent. `workspace` counts from 1. `state_since` is when `status` last changed (for "Working… 12 s"). `last_activity` and `last_message` (at most 200 characters, on one line) come from the conversation and are null without one. Times are RFC 3339 in UTC.
+
+**`transcript`**: the conversation of the window the client views (see `view`). Entries from `from` on replace what the client has; earlier entries stay. A first message starts at `from` 0 or at the last 100 entries; later ones usually append, or start at the action whose result just arrived. `from` 0 with no entries means the window's agent or session changed.
+
+```json
+{"event": "transcript", "window": "w3", "from": 41, "entries": [ … ]}
+```
 
 **`reply`**: the result of a command, with the command's `id`. `result` is `{"ok": value}` or `{"error": "message"}`. A message that is not a command gets a reply with id 0.
 
@@ -72,6 +81,32 @@ Every message has an `event` field.
 ```json
 {"event": "closed", "reason": "token revoked"}
 ```
+
+## Conversation entries
+
+Conversations come from the session files Claude Code and pi write, so a window has one only while its agent runs with a known session: install the integration (`relay integration install claude` or `pi`). Thinking and subagent turns are left out.
+
+```json
+{"kind": "user", "text": "Ping every 15 s", "at": "…"}
+{"kind": "assistant", "text": "Markdown text", "at": "…"}
+{
+  "kind": "action",
+  "id": "toolu_01…",
+  "tool": "edit",
+  "target": "src/protocol.rs",
+  "status": "ok",
+  "at": "…",
+  "diff": {
+    "added": 12,
+    "removed": 3,
+    "truncated": false,
+    "hunks": [{"old_start": 38, "new_start": 38, "lines": [" Output {", "-Close { pane: u32 },", "+Close { pane: u32, code: u16 },"]}]
+  }
+}
+{"kind": "action", "id": "…", "tool": "bash", "target": "cargo test", "status": "error", "at": "…", "output": "last 40 lines"}
+```
+
+`tool` is the agent's tool name in lowercase (`read`, `edit`, `write`, `bash`, `grep`…). `target` is what it works on: a path relative to the session's directory, the first line of a command, a pattern. `status` is `running` until the result arrives, then `ok` or `error`. Edits and writes carry a `diff` (at most 400 lines, `added` and `removed` count them all); commands carry the end of their `output`, as do failed tools.
 
 ## Commands
 
@@ -86,7 +121,8 @@ A command is an `id` chosen by the client and a `method` with its fields.
 | `run` | `command`, `space`, `workspace` (1 to 9), `float` (all optional but `command`) | `{"window"}`; types the command in a new shell |
 | `send_text` | `window`, `text` | null; end `text` with `\r` to press Enter |
 | `send_keys` | `window`, `keys` | null; keys are chords like `Enter`, `Esc`, `Down`, `Ctrl+C`, `1` |
-| `view` | `window` | null; the user is looking at the window, so `done` becomes `idle` |
+| `view` | `window`, or null to stop | `{"total"}`; follows the window's conversation with `transcript` messages. While a client views a window, its agent's news counts as seen: `done` becomes `idle` |
+| `transcript` | `window`, `before`, `limit` (both optional) | `{"from", "total", "entries"}`: up to `limit` entries (100, at most 500) before index `before` (the end), to scroll back |
 
 ```json
 {"id": 4, "method": "send_keys", "window": "w3", "keys": ["Down", "Enter"]}

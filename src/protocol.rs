@@ -95,9 +95,9 @@ pub enum ServerMsg {
 }
 
 /// Pushed to subscribers: the whole state when they connect, then again
-/// whenever it changes. Remote clients also get replies and a reason when
-/// they are let go.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// whenever it changes. Remote clients also get replies, the conversation of
+/// the window they view, and a reason when they are let go.
+#[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Update {
     State {
@@ -107,6 +107,12 @@ pub enum Update {
     Reply {
         id: u64,
         result: Response,
+    },
+    /// Entries from `from` on replace what the client has; earlier ones stay.
+    Transcript {
+        window: String,
+        from: usize,
+        entries: Vec<crate::transcript::Entry>,
     },
     Closed {
         reason: String,
@@ -172,9 +178,19 @@ pub enum Request {
         #[serde(default)]
         seq: u64,
     },
-    /// A remote client shows the window: its agent's news counts as seen.
+    /// A remote client shows the window, or none: its agent's news counts
+    /// as seen, and its conversation follows.
     View {
+        #[serde(default)]
+        window: Option<String>,
+    },
+    /// Conversation entries before `before` (default: the end).
+    Transcript {
         window: String,
+        #[serde(default)]
+        before: Option<usize>,
+        #[serde(default)]
+        limit: Option<usize>,
     },
     /// What a phone needs to connect; `revoke` first replaces the token and
     /// disconnects every remote client.

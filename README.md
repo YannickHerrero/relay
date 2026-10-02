@@ -102,6 +102,7 @@ relay send w3 "npm test" --enter
 relay send-keys w3 Down Enter   # keys as in keybindings: Esc, Ctrl+C...
 relay windows                   # JSON, with agent states
 relay events                    # spaces and windows as a JSON line, again on every change
+relay transcript w3             # an agent's conversation, as remote clients get it
 relay remote pair               # pair a phone, see Remote access
 relay spaces
 relay status

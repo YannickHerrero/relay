@@ -85,7 +85,7 @@ impl Server {
                 ws.windows()
                     .filter_map(|id| self.windows.get(&id)?.tracker.status()),
             );
-            let mut style = if active {
+            let style = if active {
                 Style::new()
                     .fg(theme::BASE)
                     .bg(theme::BLUE)
@@ -93,27 +93,30 @@ impl Server {
             } else {
                 Style::new().fg(theme::TEXT).bg(theme::SURFACE0)
             };
-            let mark = match status {
-                Some(Status::Blocked) => {
-                    if !active {
-                        style = style.fg(theme::PEACH);
-                    }
-                    "!"
-                }
-                Some(Status::Working) => "•",
-                Some(Status::Done) => "✓",
-                _ => " ",
+            let label = match &ws.name {
+                Some(name) => format!(" {} - {name} ", n + 1),
+                None => format!(" {} ", n + 1),
             };
             push(
                 &mut segments,
                 &mut x,
-                match &ws.name {
-                    Some(name) => format!(" {} - {name}{mark}", n + 1),
-                    None => format!(" {}{mark}", n + 1),
-                },
+                label,
                 style,
                 Some(BarItem::Workspace(n)),
             );
+            // The same dot as the agent counts on the right.
+            if let Some(status @ (Status::Working | Status::Blocked | Status::Done)) = status {
+                let (_, dot) = status_style(status);
+                let dot = style.fg(dot.fg.unwrap_or(theme::TEXT));
+                push(
+                    &mut segments,
+                    &mut x,
+                    "● ".to_owned(),
+                    dot,
+                    Some(BarItem::Workspace(n)),
+                );
+            }
+            x += 1;
         }
 
         let clock = chrono::Local::now().format("%a %d %b  %H:%M").to_string();

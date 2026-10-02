@@ -5,3 +5,4 @@ edition = "2024"
 description = "Tiling terminal window manager for coding agents"
 
 [dependencies]
+ratatui = "0.30.2"

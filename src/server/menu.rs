@@ -5,7 +5,7 @@ use std::time::Instant;
 use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
-use ratatui::style::Style;
+use ratatui::style::{Modifier, Style};
 use unicode_width::UnicodeWidthStr;
 
 use super::Server;
@@ -159,7 +159,7 @@ impl Server {
                 break;
             }
             let style = if i == menu.selected {
-                Style::new().bg(theme::SURFACE0).fg(theme::ACCENT)
+                Style::new().fg(theme::ACCENT).add_modifier(Modifier::BOLD)
             } else {
                 Style::new().fg(theme::TEXT)
             };

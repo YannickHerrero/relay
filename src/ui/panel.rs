@@ -1,4 +1,5 @@
-//! The framed, opaque panel every overlay is drawn in.
+//! The frame every overlay is drawn in: what is under it is cleared, and
+//! the terminal's own background shows through, as in a floating window.
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -13,8 +14,7 @@ pub fn draw(rect: Rect, title: &str, footer: &str, buf: &mut Buffer) -> Rect {
     Clear.render(rect, buf);
     let mut block = Block::bordered()
         .border_type(BorderType::Rounded)
-        .border_style(Style::new().fg(theme::SURFACE1))
-        .style(Style::new().bg(theme::BASE).fg(theme::TEXT));
+        .border_style(Style::new().fg(theme::SURFACE1));
     if !title.is_empty() {
         block = block.title(Line::styled(
             format!(" {title} "),
@@ -31,10 +31,7 @@ pub fn draw(rect: Rect, title: &str, footer: &str, buf: &mut Buffer) -> Rect {
     inner
 }
 
-/// A key shown boxed: `[x]` in the accent color.
+/// A key, in the accent color.
 pub fn key_style() -> Style {
-    Style::new()
-        .fg(theme::ACCENT)
-        .bg(theme::SURFACE0)
-        .add_modifier(Modifier::BOLD)
+    Style::new().fg(theme::ACCENT).add_modifier(Modifier::BOLD)
 }

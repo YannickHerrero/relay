@@ -372,11 +372,7 @@ impl Server {
 }
 
 fn draw_row(row: &Row, list: Rect, y: u16, selected: bool, buf: &mut Buffer) {
-    let base = if selected {
-        Style::new().bg(theme::SURFACE0)
-    } else {
-        Style::new()
-    };
+    let base = Style::new();
     for x in list.x..list.right() {
         buf[(x, y)].set_style(base);
     }
@@ -391,7 +387,11 @@ fn draw_row(row: &Row, list: Rect, y: u16, selected: bool, buf: &mut Buffer) {
         y,
         &row.label,
         right.saturating_sub(x) as usize,
-        base.fg(theme::TEXT),
+        if selected {
+            Style::new().fg(theme::ACCENT).add_modifier(Modifier::BOLD)
+        } else {
+            base.fg(theme::TEXT)
+        },
     );
     x += row.label.width() as u16 + 2;
     if let Some(status) = row.status.filter(|s| *s != Status::Unknown)

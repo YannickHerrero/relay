@@ -46,11 +46,11 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | h j k l | Focus |
 | H J K L | Swap with the neighbor |
 | u / p | Width −5% / +5% |
-| i / o | Height −5% / +5% |
+| i / O | Height −5% / +5% |
 | 1…9 | Workspace |
 | s / d | Next occupied / recent workspace |
 | m, 1…9 | Move the window to a workspace and follow it |
-| S | Space picker |
+| o | Space picker |
 | Tab / n | Recent / next space |
 | ? | Keybindings |
 | x d / x r / x q | Detach / reload config / stop the server |

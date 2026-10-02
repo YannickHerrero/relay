@@ -1,0 +1,7 @@
+[package]
+name = "relay"
+version = "0.1.0"
+edition = "2024"
+description = "Tiling terminal window manager for coding agents"
+
+[dependencies]

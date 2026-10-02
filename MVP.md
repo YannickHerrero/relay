@@ -19,7 +19,7 @@ relay est un multiplexeur de terminal pensé comme un tiling window manager, pou
 ### Socle technique
 
 - Serveur persistant et client : un client se détache et se rattache, les processus continuent de tourner.
-- PTY et émulation de terminal avec ghostty-vt (libghostty-vt, compilée avec Zig 0.16).
+- PTY et émulation de terminal avec alacritty_terminal (crate Rust pur, pas de Zig à installer).
 - Restauration après un redémarrage du serveur ou de la machine : spaces, workspaces, fenêtres et leur cwd. Les sessions Claude Code et pi reprennent (`--resume`).
 - Détection d'état des agents (working, blocked, done, idle) pour Claude Code et pi : processus au premier plan, manifestes d'écran et hooks d'intégration repris de herdr.
 - CLI et socket API minimaux pour piloter relay depuis un script (créer ou focus un space, lancer une commande dans une fenêtre, lister l'état). Pas de compatibilité avec l'API herdr.

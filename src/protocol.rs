@@ -116,6 +116,11 @@ pub enum Request {
         window: String,
         text: String,
     },
+    /// Presses keys written as chords: `Enter`, `Esc`, `Down`, `Ctrl+C`.
+    SendKeys {
+        window: String,
+        keys: Vec<String>,
+    },
     ReportSession {
         window: String,
         agent: String,

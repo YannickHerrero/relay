@@ -73,6 +73,12 @@ enum Cmd {
         #[arg(long)]
         enter: bool,
     },
+    /// Press keys in a window: Enter, Esc, Down, Ctrl+C...
+    SendKeys {
+        window: String,
+        #[arg(required = true)]
+        keys: Vec<String>,
+    },
     /// Report an agent session id for resuming after a restart.
     ReportSession {
         #[arg(long)]
@@ -161,6 +167,7 @@ fn main() -> anyhow::Result<()> {
             window,
             text: if enter { format!("{text}\r") } else { text },
         },
+        Cmd::SendKeys { window, keys } => Request::SendKeys { window, keys },
         Cmd::ReportSession {
             agent,
             session,

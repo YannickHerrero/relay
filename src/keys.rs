@@ -161,6 +161,37 @@ impl Chord {
         Some(Chord { mods, key })
     }
 
+    /// The key event a terminal would deliver for this chord.
+    pub fn to_event(self) -> KeyEvent {
+        let m = self.mods;
+        let mut modifiers = KeyModifiers::empty();
+        modifiers.set(KeyModifiers::CONTROL, m.ctrl);
+        modifiers.set(KeyModifiers::ALT, m.alt);
+        modifiers.set(KeyModifiers::SHIFT, m.shift);
+        modifiers.set(KeyModifiers::SUPER, m.meta);
+        let code = match self.key {
+            Key::Char(c) if m.shift => KeyCode::Char(c.to_uppercase().next().unwrap_or(c)),
+            Key::Char(c) => KeyCode::Char(c),
+            Key::Enter => KeyCode::Enter,
+            Key::Tab if m.shift => KeyCode::BackTab,
+            Key::Tab => KeyCode::Tab,
+            Key::Backspace => KeyCode::Backspace,
+            Key::Esc => KeyCode::Esc,
+            Key::Space => KeyCode::Char(' '),
+            Key::Up => KeyCode::Up,
+            Key::Down => KeyCode::Down,
+            Key::Left => KeyCode::Left,
+            Key::Right => KeyCode::Right,
+            Key::Home => KeyCode::Home,
+            Key::End => KeyCode::End,
+            Key::PageUp => KeyCode::PageUp,
+            Key::PageDown => KeyCode::PageDown,
+            Key::Delete => KeyCode::Delete,
+            Key::F(n) => KeyCode::F(n),
+        };
+        KeyEvent::new(code, modifiers)
+    }
+
     /// The digit 1-9 of a chord, if it is one.
     pub fn digit(&self) -> Option<usize> {
         match self.key {
@@ -243,6 +274,14 @@ mod tests {
         assert_eq!(chord("Ctrl+Space").key, Key::Space);
         assert_eq!(chord("F12").key, Key::F(12));
         assert!(Chord::parse("Hyper+X", Modifier::Ctrl).is_none());
+    }
+
+    #[test]
+    fn chords_turn_back_into_events() {
+        for text in ["Ctrl+C", "Esc", "Shift+Tab", "1", "A", "Alt+Enter", "Space"] {
+            let chord = chord(text);
+            assert_eq!(Chord::from_event(&chord.to_event()), Some(chord), "{text}");
+        }
     }
 
     #[test]

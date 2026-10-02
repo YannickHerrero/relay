@@ -99,6 +99,7 @@ relay open ~/dev/project        # focus or create the project's space
 relay run --workspace 2 -- claude
 relay run --float -- lazygit
 relay send w3 "npm test" --enter
+relay send-keys w3 Down Enter   # keys as in keybindings: Esc, Ctrl+C...
 relay windows                   # JSON, with agent states
 relay spaces
 relay status

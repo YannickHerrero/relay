@@ -8,6 +8,8 @@ use crate::config::{self, tilde};
 use crate::detect::Agent;
 use crate::detect::manifest::AgentState;
 use crate::detect::process;
+use crate::encode;
+use crate::keys::Chord;
 use crate::model::{Location, WindowId};
 use crate::protocol::Request;
 
@@ -94,6 +96,27 @@ impl Server {
                     .get(&id)
                     .with_context(|| format!("no window {window}"))?;
                 window.pane.write(text);
+                Ok(Value::Null)
+            }
+            Request::SendKeys { window, keys } => {
+                let id = parse_window(&window)?;
+                let chords = keys
+                    .iter()
+                    .map(|k| {
+                        Chord::parse(k, self.config.modifier)
+                            .with_context(|| format!("not a key: {k}"))
+                    })
+                    .collect::<anyhow::Result<Vec<_>>>()?;
+                let window = self
+                    .windows
+                    .get(&id)
+                    .with_context(|| format!("no window {window}"))?;
+                let mode = *window.pane.term.mode();
+                let bytes: Vec<u8> = chords
+                    .iter()
+                    .flat_map(|c| encode::key(&c.to_event(), mode))
+                    .collect();
+                window.pane.write(bytes);
                 Ok(Value::Null)
             }
             Request::ReportSession {

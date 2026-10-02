@@ -3,6 +3,7 @@ mod client;
 mod config;
 mod detect;
 mod encode;
+mod integration;
 mod keymap;
 mod keys;
 mod layout;
@@ -95,8 +96,21 @@ enum Cmd {
     },
     /// Reload config.toml and keybindings.toml.
     Reload,
+    /// Install an agent integration: claude or pi.
+    Integration {
+        #[command(subcommand)]
+        action: IntegrationCmd,
+    },
+    /// Entry point for agent hooks; reads the hook payload on stdin.
+    #[command(hide = true)]
+    Hook { agent: String },
     /// Stop the server and every window in it.
     Stop,
+}
+
+#[derive(Subcommand)]
+enum IntegrationCmd {
+    Install { agent: String },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -167,6 +181,33 @@ fn main() -> anyhow::Result<()> {
             seq,
         },
         Cmd::Reload => Request::ReloadConfig,
+        Cmd::Integration {
+            action: IntegrationCmd::Install { agent },
+        } => {
+            println!("{}", integration::install(&agent)?);
+            return Ok(());
+        }
+        Cmd::Hook { agent } => {
+            // A hook must never fail the agent it runs in.
+            let mut payload = String::new();
+            let _ = std::io::Read::read_to_string(&mut std::io::stdin(), &mut payload);
+            if agent == "claude"
+                && let (Some(session), Ok(window)) = (
+                    integration::claude_session(&payload),
+                    std::env::var("RELAY_WINDOW_ID"),
+                )
+            {
+                let _ = send_request(
+                    Request::ReportSession {
+                        window,
+                        agent,
+                        session,
+                    },
+                    false,
+                );
+            }
+            return Ok(());
+        }
         Cmd::Stop => Request::Stop,
     };
     print(send_request(request, false)?)

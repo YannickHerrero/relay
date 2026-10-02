@@ -181,6 +181,7 @@ fn main() -> anyhow::Result<()> {
             return print(send_request(
                 Request::Run {
                     command: command.join(" "),
+                    path: None,
                     space,
                     workspace,
                     float,

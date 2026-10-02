@@ -46,33 +46,53 @@ impl Server {
                 let index = self.open_space(&path, name.as_deref());
                 Ok(json!({ "space": self.model.spaces[index].name }))
             }
+            Request::ListProjects => Ok(Value::Array(
+                self.projects()
+                    .into_iter()
+                    .map(|path| {
+                        let name = path.file_name().map(|n| n.to_string_lossy().into_owned());
+                        json!({ "name": name, "path": path })
+                    })
+                    .collect(),
+            )),
             Request::Run {
                 command,
+                path,
                 space,
                 workspace,
                 float,
             } => {
-                let space = match space {
-                    Some(name) => self
+                let path = path.map(|p| config::expand_home(&p));
+                if let Some(path) = &path
+                    && !path.is_dir()
+                {
+                    bail!("not a directory: {}", path.display());
+                }
+                let space = match (&path, space) {
+                    (_, Some(name)) => self
                         .model
                         .find_space(&name)
                         .with_context(|| format!("no space named {name}"))?,
-                    None => self.model.active,
+                    (Some(path), None) => self.project_space(path),
+                    (None, None) => self.model.active,
                 };
                 let workspace = match workspace {
                     Some(n @ 1..=9) => n - 1,
                     Some(n) => bail!("workspace must be 1 to 9, not {n}"),
                     None => self.model.spaces[space].active,
                 };
-                let cwd = if space == self.model.active {
-                    self.new_window_cwd()
-                } else {
-                    self.model.spaces[space].cwd.clone()
+                let cwd = match path {
+                    Some(path) => path,
+                    None if space == self.model.active => self.new_window_cwd(),
+                    None => self.model.spaces[space].cwd.clone(),
                 };
                 let id = self
                     .spawn_shell_at(Location { space, workspace }, cwd, Some(&command), float)
                     .context("cannot start the window")?;
-                Ok(json!({ "window": format!("w{id}") }))
+                Ok(json!({
+                    "window": format!("w{id}"),
+                    "space": self.model.spaces[space].name,
+                }))
             }
             Request::SendText { window, text } => {
                 let id = parse_window(&window)?;

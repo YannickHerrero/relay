@@ -143,6 +143,7 @@ pub enum Request {
     Status,
     ListSpaces,
     ListWindows,
+    ListProjects,
     /// Focuses the space named after `path`, creating it there if needed.
     OpenSpace {
         path: String,
@@ -150,6 +151,10 @@ pub enum Request {
     },
     Run {
         command: String,
+        /// A project directory: the window opens there, in the project's
+        /// space, created if needed without taking the focus.
+        #[serde(default)]
+        path: Option<String>,
         #[serde(default)]
         space: Option<String>,
         #[serde(default)]

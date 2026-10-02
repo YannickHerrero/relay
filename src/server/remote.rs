@@ -185,6 +185,7 @@ fn allowed(request: &Request) -> bool {
         Request::Status
             | Request::ListSpaces
             | Request::ListWindows
+            | Request::ListProjects
             | Request::OpenSpace { .. }
             | Request::Run { .. }
             | Request::SendText { .. }

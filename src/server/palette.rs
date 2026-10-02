@@ -109,7 +109,7 @@ impl Server {
     }
 
     /// Directories directly under the configured project roots.
-    fn projects(&self) -> Vec<PathBuf> {
+    pub(super) fn projects(&self) -> Vec<PathBuf> {
         let mut projects: Vec<PathBuf> = self
             .config
             .project_roots()
@@ -128,12 +128,16 @@ impl Server {
 
     /// Focuses the space named after `path` (or `name`), creating it there
     /// with a first terminal when it does not exist.
+    /// The space of a project directory, created without taking the focus.
+    pub(super) fn project_space(&mut self, path: &Path) -> usize {
+        let name = space_name(path);
+        self.model
+            .find_space(&name)
+            .unwrap_or_else(|| self.model.create_space(&name, path.to_path_buf()))
+    }
+
     pub(super) fn open_space(&mut self, path: &Path, name: Option<&str>) -> usize {
-        let name = name.map(str::to_owned).unwrap_or_else(|| {
-            path.file_name()
-                .map(|n| n.to_string_lossy().into_owned())
-                .unwrap_or_else(|| "space".into())
-        });
+        let name = name.map(str::to_owned).unwrap_or_else(|| space_name(path));
         if let Some(index) = self.model.find_space(&name) {
             self.switch_space(index);
             return index;
@@ -157,4 +161,10 @@ impl Server {
             })
             .collect()
     }
+}
+
+fn space_name(path: &Path) -> String {
+    path.file_name()
+        .map(|n| n.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "space".into())
 }

@@ -7,5 +7,6 @@ mod keys;
 mod layout;
 mod pane;
 mod protocol;
+mod ui;
 
 fn main() {}

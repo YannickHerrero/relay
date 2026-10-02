@@ -7,6 +7,8 @@ mod bar;
 mod chrome;
 mod input;
 mod mouse;
+mod overlay;
+mod palette;
 mod render;
 mod whichkey;
 
@@ -85,6 +87,7 @@ pub struct Server {
     size: (u16, u16),
     leader: Option<input::Leader>,
     mouse: mouse::MouseState,
+    overlay: Option<overlay::ListOverlay>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -172,6 +175,7 @@ impl Server {
             size: (80, 24),
             leader: None,
             mouse: Default::default(),
+            overlay: None,
         }
     }
 

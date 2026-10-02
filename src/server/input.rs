@@ -30,6 +30,10 @@ impl Server {
     }
 
     fn on_key(&mut self, key: KeyEvent) {
+        if self.overlay.is_some() {
+            self.on_overlay_key(key);
+            return;
+        }
         let chord = Chord::from_event(&key);
         if self.leader.is_some() {
             self.on_leader_key(key, chord);

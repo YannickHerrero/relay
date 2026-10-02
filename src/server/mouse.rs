@@ -97,6 +97,10 @@ impl Server {
 
     pub(super) fn on_mouse(&mut self, event: MouseEvent) {
         self.mouse.pointer = (event.column, event.row);
+        if self.overlay.is_some() {
+            self.on_overlay_mouse(event);
+            return;
+        }
         let hit = self.hit(event.column, event.row);
         match event.kind {
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => self.on_wheel(event, hit),

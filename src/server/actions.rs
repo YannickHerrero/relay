@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use ratatui::layout::Rect;
 
 use super::Server;
+use super::overlay::ListKind;
 use crate::actions::Action;
 use crate::detect;
 use crate::layout::{self, Axis};
@@ -82,7 +83,8 @@ impl Server {
                 }
             }
             Action::Popup(command) => self.popup(&command),
-            Action::Palette | Action::SpacePicker | Action::Keybindings => {}
+            Action::Palette => self.open_list(ListKind::Palette),
+            Action::SpacePicker | Action::Keybindings => {}
             Action::Detach => self.detach(),
             Action::ConfigReload => self.reload_config(),
             Action::ServerStop => self.quit = true,

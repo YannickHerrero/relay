@@ -6,6 +6,7 @@ mod agents;
 mod bar;
 mod chrome;
 mod input;
+mod mouse;
 mod render;
 mod whichkey;
 
@@ -83,6 +84,8 @@ pub struct Server {
     quit: bool,
     size: (u16, u16),
     leader: Option<input::Leader>,
+    /// Window whose program receives the rest of a mouse gesture.
+    mouse_owner: Option<WindowId>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -169,6 +172,7 @@ impl Server {
             quit: false,
             size: (80, 24),
             leader: None,
+            mouse_owner: None,
         }
     }
 

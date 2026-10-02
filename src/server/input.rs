@@ -22,6 +22,7 @@ impl Server {
                     window.pane.write(bytes);
                 }
             }
+            Event::Mouse(mouse) => self.on_mouse(mouse),
             Event::Resize(cols, rows) => self.resize(cols, rows),
             _ => {}
         }

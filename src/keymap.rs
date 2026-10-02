@@ -12,6 +12,10 @@ pub const DEFAULTS: &[(&str, &str)] = &[
     ("Mod+J", "window focus down"),
     ("Mod+K", "window focus up"),
     ("Mod+L", "window focus right"),
+    ("Mod+Shift+H", "window move left"),
+    ("Mod+Shift+J", "window move down"),
+    ("Mod+Shift+K", "window move up"),
+    ("Mod+Shift+L", "window move right"),
     ("Mod+1", "workspace 1"),
     ("Mod+2", "workspace 2"),
     ("Mod+3", "workspace 3"),
@@ -259,6 +263,15 @@ mod tests {
         assert_eq!(
             keymap.direct.get(&chord("Ctrl+H")),
             Some(&Action::WindowFocus(Direction::Left))
+        );
+    }
+
+    #[test]
+    fn shift_distinguishes_swap_from_focus() {
+        let keymap = defaults();
+        assert_eq!(
+            keymap.direct.get(&chord("Ctrl+Shift+H")),
+            Some(&Action::WindowMove(Direction::Left))
         );
     }
 

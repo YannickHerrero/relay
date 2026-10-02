@@ -30,6 +30,7 @@ The main modifier `Mod` is `Ctrl` by default (`modifier = "alt"` or `"meta"` in 
 | Key | Action |
 |---|---|
 | Mod+H/J/K/L | Focus left, down, up, right |
+| Mod+Shift+H/J/K/L | Swap with the neighbor (needs a terminal that tells Ctrl+Shift+letter from Ctrl+letter) |
 | Mod+1…9 | Workspace 1 to 9 |
 | Mod+Space | Palette (also Ctrl+B Space) |
 | Mod+Q | Close the window |

@@ -51,10 +51,22 @@ impl Server {
     /// Follows the session of every agent that reported one, and notes
     /// status changes.
     pub(super) fn follow_conversations(&mut self) {
+        let mut seen: Vec<WindowId> = if self.client.is_some() {
+            self.model.workspace().windows().collect()
+        } else {
+            Vec::new()
+        };
+        seen.extend(self.viewed());
+        let mut news = Vec::new();
         let mut restarted = Vec::new();
         for (&id, window) in &mut self.windows {
             let status = window.tracker.status();
             if status != window.status_since.status {
+                if let Some(s @ (Status::Blocked | Status::Done)) = status
+                    && !seen.contains(&id)
+                {
+                    news.push((id, s));
+                }
                 window.status_since = StatusSince {
                     status,
                     since: now(),
@@ -92,6 +104,7 @@ impl Server {
             });
             restarted.push(id);
         }
+        self.notify(&news);
         for id in restarted {
             self.send_to_viewers(
                 id,

@@ -14,6 +14,7 @@ mod motion;
 mod mouse;
 mod overlay;
 mod palette;
+mod push;
 mod remote;
 mod rename;
 mod render;
@@ -63,6 +64,7 @@ pub enum Event {
     RemoteHello(remote::Hello),
     Remote(u64, protocol::Command),
     RemoteGone(u64),
+    PushGone(String),
     Transcript {
         window: WindowId,
         session: String,
@@ -141,6 +143,8 @@ pub struct Server {
     published: Option<Update>,
     /// Set while remote access is on.
     remote_token: Option<String>,
+    /// Set while remote access is on.
+    push: Option<push::Push>,
     /// Remote clients that passed their hello.
     remotes: HashMap<u64, remote::Remote>,
 }
@@ -251,6 +255,7 @@ impl Server {
             subscribers: Vec::new(),
             published: None,
             remote_token: None,
+            push: None,
             remotes: HashMap::new(),
         }
     }
@@ -368,6 +373,7 @@ impl Server {
                 session,
                 change,
             } => self.on_transcript(window, session, change),
+            Event::PushGone(endpoint) => self.push_gone(&endpoint),
             Event::Api(request, reply) => {
                 let response = match self.api(request) {
                     Ok(value) => Response::Ok(value),

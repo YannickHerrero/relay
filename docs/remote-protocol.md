@@ -20,7 +20,7 @@ The first message must be:
 {"v": 1, "token": "…"}
 ```
 
-The server answers with the state, or with `closed` and shuts the connection:
+The server answers with `welcome` then the state, or with `closed` and shuts the connection:
 
 | Reason | Cause |
 |---|---|
@@ -34,6 +34,12 @@ The server waits 10 seconds for the hello.
 ## From the server
 
 Every message has an `event` field.
+
+**`welcome`**: who answered, right after the hello. `push_key` is the VAPID public key (base64url, uncompressed point) to subscribe to push notifications with.
+
+```json
+{"event": "welcome", "name": "Mac mini", "version": "0.1.0", "push_key": "BNc…"}
+```
 
 **`state`**: everything, right after the hello and again whenever something changes (checked every 300 ms). Clients replace what they had.
 
@@ -135,15 +141,29 @@ A command is an `id` chosen by the client and a `method` with its fields.
 | `list_spaces` | | the `spaces` of `state` |
 | `list_windows` | | the `windows` of `state` |
 | `open_space` | `path`, `name` (optional) | `{"space"}`; focuses or creates the space of a directory |
-| `run` | `command`, `space`, `workspace` (1 to 9), `float` (all optional but `command`) | `{"window"}`; types the command in a new shell |
+| `list_projects` | | `[{"name", "path"}]`: directories under the configured project roots |
+| `run` | `command`, `path`, `space`, `workspace` (1 to 9), `float` (all optional but `command`) | `{"window", "space"}`; types the command in a new shell. `path` is a project directory: the window opens there, in the project's space, created if needed without taking the focus |
 | `send_text` | `window`, `text` | null; end `text` with `\r` to press Enter |
 | `send_keys` | `window`, `keys` | null; keys are chords like `Enter`, `Esc`, `Down`, `Ctrl+C`, `1` |
 | `view` | `window`, or null to stop | `{"total"}`; follows the window's conversation with `transcript` messages. While a client views a window, its agent's news counts as seen: `done` becomes `idle` |
 | `read_screen` | `window` | `{"lines"}`: the window's screen as text, for windows without a conversation |
 | `transcript` | `window`, `before`, `limit` (both optional) | `{"from", "total", "entries"}`: up to `limit` entries (100, at most 500) before index `before` (the end), to scroll back |
 
+| `push_subscribe` | `subscription` | null; the browser's `PushSubscription` as JSON (`endpoint`, `keys.p256dh`, `keys.auth`) |
+| `push_unsubscribe` | `endpoint` | null |
+
 ```json
 {"id": 4, "method": "send_keys", "window": "w3", "keys": ["Down", "Enter"]}
 ```
+
+## Push notifications
+
+When an agent starts waiting on a choice (`blocked`) or finishes unseen (`done`) while nobody looks at its window, in the terminal or from a remote client, the server sends every subscription a Web Push message whose payload is JSON:
+
+```json
+{"title": "pi needs you", "body": "heartbeat · relay", "window": "w3", "machine": "wss://mac.example.ts.net", "tag": "wss://mac.example.ts.net w3"}
+```
+
+`machine` is `[remote] url`. Every machine signs with the VAPID key in `~/.local/state/relay/remote-vapid`, created on first start; a browser has one push subscription, so copy that file to each machine (then restart its server) to get notifications from all of them. Subscriptions that the push service rejects as gone are dropped.
 
 Server control (stopping it, reloading config, pairing) and agent hooks are refused with `not available to remote clients`.

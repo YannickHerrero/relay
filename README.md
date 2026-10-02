@@ -167,6 +167,8 @@ relay remote pair            # QR code to scan in omnitool, and the same as text
 relay remote pair --revoke   # new token; every paired device must pair again
 ```
 
+omnitool can notify you when an agent needs you or finishes while nobody looks at it. Notifications from several machines need them to share one key: copy `~/.local/state/relay/remote-vapid` from the first machine to the others, then restart their servers.
+
 The token lives in `~/.local/state/relay/remote-token`. Anyone holding it can type into every window, so treat it like an SSH key. Browsers must come from one of `origins`; clients that send no origin only need the token. The protocol is described in [docs/remote-protocol.md](docs/remote-protocol.md).
 
 ## Running as a service

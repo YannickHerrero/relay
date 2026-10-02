@@ -167,6 +167,20 @@ impl Server {
                 before,
                 limit,
             } => self.transcript_page(&window, before, limit),
+            Request::PushSubscribe { subscription } => {
+                self.push
+                    .as_mut()
+                    .context("remote access is off")?
+                    .subscribe(subscription)?;
+                Ok(Value::Null)
+            }
+            Request::PushUnsubscribe { endpoint } => {
+                self.push
+                    .as_mut()
+                    .context("remote access is off")?
+                    .unsubscribe(&endpoint)?;
+                Ok(Value::Null)
+            }
             Request::ReadScreen { window } => {
                 let id = parse_window(&window)?;
                 let window = self

@@ -100,6 +100,12 @@ pub enum ServerMsg {
 #[derive(Debug, Clone, PartialEq, Serialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Update {
+    Welcome {
+        name: String,
+        version: String,
+        /// VAPID public key for push subscriptions.
+        push_key: Option<String>,
+    },
     State {
         spaces: Vec<serde_json::Value>,
         windows: Vec<serde_json::Value>,
@@ -196,6 +202,13 @@ pub enum Request {
         before: Option<usize>,
         #[serde(default)]
         limit: Option<usize>,
+    },
+    /// A browser's `PushSubscription`, to notify it when agents need it.
+    PushSubscribe {
+        subscription: serde_json::Value,
+    },
+    PushUnsubscribe {
+        endpoint: String,
     },
     /// The window's screen as text.
     ReadScreen {

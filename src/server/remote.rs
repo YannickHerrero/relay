@@ -57,6 +57,10 @@ pub(super) fn start(server: &mut Server) {
         }
     };
     server.remote_token = Some(token);
+    match super::push::Push::load() {
+        Ok(push) => server.push = Some(push),
+        Err(e) => eprintln!("relay: push notifications are off: {e}"),
+    }
     let tx = server.tx.clone();
     std::thread::spawn(move || {
         static NEXT: AtomicU64 = AtomicU64::new(1);
@@ -193,6 +197,8 @@ fn allowed(request: &Request) -> bool {
             | Request::View { .. }
             | Request::Transcript { .. }
             | Request::ReadScreen { .. }
+            | Request::PushSubscribe { .. }
+            | Request::PushUnsubscribe { .. }
     )
 }
 
@@ -227,6 +233,11 @@ impl Server {
             let _ = out.send(closed(&reason));
             return;
         }
+        let _ = out.send(Update::Welcome {
+            name: self.machine_name(),
+            version: env!("CARGO_PKG_VERSION").into(),
+            push_key: self.push.as_ref().map(|p| p.public_key()),
+        });
         let state = self.share_state();
         if out.send(state).is_ok() {
             self.remotes.insert(id, Remote { out, viewing: None });
@@ -277,16 +288,22 @@ impl Server {
                 let _ = remote.out.send(closed("token revoked"));
             }
         }
-        let name = if remote.name.is_empty() {
-            host_name()
-        } else {
-            remote.name.clone()
-        };
         Ok(json!({
-            "name": name,
+            "name": self.machine_name(),
             "url": remote.url,
             "token": self.remote_token,
         }))
+    }
+}
+
+impl Server {
+    fn machine_name(&self) -> String {
+        let name = &self.config.remote.name;
+        if name.is_empty() {
+            host_name()
+        } else {
+            name.clone()
+        }
     }
 }
 

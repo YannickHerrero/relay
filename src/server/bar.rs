@@ -178,7 +178,7 @@ impl Server {
     }
 
     pub(super) fn bar_item_at(&self, col: u16) -> Option<BarItem> {
-        self.bar_segments(self.size.0)
+        self.bar_segments(self.size.0 - self.sidebar_width())
             .into_iter()
             .find(|s| col >= s.x && col < s.x + s.text.width() as u16)
             .and_then(|s| s.item)

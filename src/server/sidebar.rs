@@ -9,8 +9,8 @@ use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier, Style};
 use unicode_width::UnicodeWidthStr;
 
+use super::Server;
 use super::motion::{self, SLIDE};
-use super::{BAR_HEIGHT, Server};
 use crate::detect::tracker::Status;
 use crate::model::WindowId;
 use crate::ui::theme;
@@ -40,7 +40,7 @@ impl Server {
     }
 
     /// Columns drawn now, sliding while it opens or closes.
-    fn sidebar_shown(&self, now: Instant) -> u16 {
+    pub(super) fn sidebar_shown(&self, now: Instant) -> u16 {
         let full = WIDTH.min(self.size.0 / 2) as f32;
         let t = self
             .sidebar
@@ -69,15 +69,12 @@ impl Server {
     }
 
     /// Area of the open sidebar on screen, for the mouse.
+    /// Area of the open sidebar on screen, for the mouse. It runs the full
+    /// height, next to the bar, so its separator reaches the top.
     fn sidebar_area(&self) -> Rect {
         let width = self.sidebar_width();
         let (cols, rows) = self.size;
-        Rect::new(
-            cols - width,
-            BAR_HEIGHT,
-            width,
-            rows.saturating_sub(BAR_HEIGHT),
-        )
+        Rect::new(cols - width, 0, width, rows)
     }
 
     pub(super) fn sidebar_contains(&self, x: u16, y: u16) -> bool {
@@ -120,7 +117,7 @@ impl Server {
             return;
         }
         let width = WIDTH.min(screen.width / 2);
-        let height = screen.height.saturating_sub(BAR_HEIGHT);
+        let height = screen.height;
         // Drawn at full width off screen, then the visible part is copied,
         // so the panel slides in instead of squeezing.
         let mut panel = Buffer::empty(Rect::new(0, 0, width, height));
@@ -128,7 +125,7 @@ impl Server {
         let x0 = screen.right() - shown;
         for y in 0..height {
             for x in 0..shown.min(width) {
-                buf[(x0 + x, screen.y + BAR_HEIGHT + y)] = panel[(x, y)].clone();
+                buf[(x0 + x, screen.y + y)] = panel[(x, y)].clone();
             }
         }
     }

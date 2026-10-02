@@ -105,6 +105,11 @@ enum Cmd {
     Events,
     /// Reload config.toml and keybindings.toml.
     Reload,
+    /// Remote access for phones and tablets.
+    Remote {
+        #[command(subcommand)]
+        action: RemoteCmd,
+    },
     /// Install an agent integration: claude or pi.
     Integration {
         #[command(subcommand)]
@@ -115,6 +120,16 @@ enum Cmd {
     Hook { agent: String },
     /// Stop the server and every window in it.
     Stop,
+}
+
+#[derive(Subcommand)]
+enum RemoteCmd {
+    /// Show the pairing code to scan in omnitool.
+    Pair {
+        /// Replace the token first, disconnecting every paired device.
+        #[arg(long)]
+        revoke: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -192,6 +207,12 @@ fn main() -> anyhow::Result<()> {
         },
         Cmd::Events => return follow_events(),
         Cmd::Reload => Request::ReloadConfig,
+        Cmd::Remote {
+            action: RemoteCmd::Pair { revoke },
+        } => {
+            let pairing = send_request(Request::RemotePairing { revoke }, false)?;
+            return show_pairing(&pairing);
+        }
         Cmd::Integration {
             action: IntegrationCmd::Install { agent },
         } => {
@@ -243,6 +264,23 @@ fn send_request(request: Request, start: bool) -> anyhow::Result<serde_json::Val
         Response::Ok(value) => Ok(value),
         Response::Error(e) => anyhow::bail!(e),
     }
+}
+
+/// Prints the pairing as a QR code, then as text to type in by hand.
+fn show_pairing(pairing: &serde_json::Value) -> anyhow::Result<()> {
+    use qrcode::render::unicode::Dense1x2;
+    let code = qrcode::QrCode::new(pairing.to_string())?;
+    // Light modules are drawn, so the code reads right on a dark terminal.
+    let image = code
+        .render::<Dense1x2>()
+        .dark_color(Dense1x2::Light)
+        .light_color(Dense1x2::Dark)
+        .build();
+    println!("{image}\n");
+    for key in ["name", "url", "token"] {
+        println!("{key:>6}  {}", pairing[key].as_str().unwrap_or_default());
+    }
+    Ok(())
 }
 
 fn follow_events() -> anyhow::Result<()> {

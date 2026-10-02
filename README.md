@@ -102,6 +102,7 @@ relay send w3 "npm test" --enter
 relay send-keys w3 Down Enter   # keys as in keybindings: Esc, Ctrl+C...
 relay windows                   # JSON, with agent states
 relay events                    # spaces and windows as a JSON line, again on every change
+relay remote pair               # pair a phone, see Remote access
 relay spaces
 relay status
 relay reload
@@ -144,6 +145,28 @@ Both files reload when saved. Commands: `window focus|move left|right|up|down`, 
 ## State
 
 The server keeps its socket, log and `state.json` in `~/.local/state/relay/`. Processes do not survive a server restart: windows come back as shells in their last directory, and agents with a known session are resumed (`claude --resume`, `pi --session`). Delete `state.json` to start from scratch.
+
+## Remote access
+
+Phones and tablets follow and answer agents through omnitool, a web app that talks to the server over a WebSocket. It is off until `config.toml` has a `[remote]` section:
+
+```toml
+[remote]
+listen = "127.0.0.1:7777"                  # read when the server starts
+url = "wss://mac.example.ts.net"           # where devices reach it
+name = "Mac mini"                          # optional, defaults to the host name
+origins = ["https://omnitool.vercel.app"]  # web apps allowed to connect
+```
+
+Keep `listen` on loopback and let Tailscale add TLS and keep it inside the tailnet:
+
+```sh
+tailscale serve --bg 7777
+relay remote pair            # QR code to scan in omnitool, and the same as text
+relay remote pair --revoke   # new token; every paired device must pair again
+```
+
+The token lives in `~/.local/state/relay/remote-token`. Anyone holding it can type into every window, so treat it like an SSH key. Browsers must come from one of `origins`; clients that send no origin only need the token. The protocol is described in [docs/remote-protocol.md](docs/remote-protocol.md).
 
 ## Running as a service
 

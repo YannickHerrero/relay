@@ -21,6 +21,8 @@ pub enum Action {
     },
     Workspace(usize),
     WorkspaceNextActive,
+    /// Next or previous workspace number, wrapping between 9 and 1.
+    WorkspaceStep(i32),
     WorkspaceRecent,
     SpaceNext,
     SpaceRecent,
@@ -72,6 +74,8 @@ impl Action {
                 follow: true,
             },
             ["workspace", "next-active"] => Action::WorkspaceNextActive,
+            ["workspace", "next"] => Action::WorkspaceStep(1),
+            ["workspace", "prev"] => Action::WorkspaceStep(-1),
             ["workspace", "recent"] => Action::WorkspaceRecent,
             ["workspace", n] => Action::Workspace(workspace(n)?),
             ["space", "next"] => Action::SpaceNext,
@@ -114,6 +118,8 @@ impl Action {
             ),
             Action::Workspace(n) => format!("Workspace {n}"),
             Action::WorkspaceNextActive => "Next occupied workspace".into(),
+            Action::WorkspaceStep(1) => "Next workspace".into(),
+            Action::WorkspaceStep(_) => "Previous workspace".into(),
             Action::WorkspaceRecent => "Recent workspace".into(),
             Action::SpaceNext => "Next space".into(),
             Action::SpaceRecent => "Recent space".into(),
@@ -157,6 +163,10 @@ mod tests {
             })
         );
         assert_eq!(Action::parse("workspace 9"), Some(Action::Workspace(9)));
+        assert_eq!(
+            Action::parse("workspace prev"),
+            Some(Action::WorkspaceStep(-1))
+        );
     }
 
     #[test]

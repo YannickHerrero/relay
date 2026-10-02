@@ -50,7 +50,8 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | s / Tab | Next occupied / recent workspace |
 | m, 1…9 | Move the window to a workspace and follow it |
 | o | Space picker |
-| Shift+Tab / n | Recent / next space |
+| n / p | Next / previous workspace |
+| Shift+Tab | Recent space |
 | ? | Keybindings |
 | x d / x r / x q | Detach / reload config / stop the server |
 
@@ -128,7 +129,7 @@ lazygit = "lazygit"
 "Mod+G" = ""
 ```
 
-Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window move-workspace N [--follow]`, `workspace N`, `workspace next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `client detach`, `config reload`, `server stop`.
+Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `client detach`, `config reload`, `server stop`.
 
 ## State
 

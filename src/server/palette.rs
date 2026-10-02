@@ -11,6 +11,9 @@ use crate::config::tilde;
 use crate::detect::process;
 use crate::keymap::DEFAULTS;
 
+/// Actions without a default key that the palette still offers.
+const UNBOUND_COMMANDS: &[&str] = &["space next", "window set-tiling"];
+
 impl Server {
     pub(super) fn palette_rows(&self) -> Vec<Row> {
         let mut rows = self.window_rows();
@@ -47,7 +50,8 @@ impl Server {
             });
         }
         let mut seen = HashSet::new();
-        for (_, command) in DEFAULTS {
+        let unbound = UNBOUND_COMMANDS.iter();
+        for command in DEFAULTS.iter().map(|(_, c)| c).chain(unbound) {
             let Some(action) = Action::parse(command) else {
                 continue;
             };

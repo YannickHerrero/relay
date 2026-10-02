@@ -7,7 +7,7 @@ use super::overlay::ListKind;
 use crate::actions::Action;
 use crate::detect;
 use crate::layout::{self, Axis};
-use crate::model::{Location, WindowId};
+use crate::model::{Location, WORKSPACES, WindowId};
 use crate::pane::Spawn;
 
 impl Server {
@@ -67,6 +67,11 @@ impl Server {
                 if let Some(n) = self.model.space().next_occupied() {
                     self.switch_workspace(n);
                 }
+            }
+            Action::WorkspaceStep(step) => {
+                let n = WORKSPACES as i32;
+                let next = (self.model.space().active as i32 + step).rem_euclid(n);
+                self.switch_workspace(next as usize);
             }
             Action::WorkspaceRecent => self.switch_workspace(self.model.space().recent),
             Action::SpaceNext => {

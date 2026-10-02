@@ -48,10 +48,10 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | u / p | Width −5% / +5% |
 | i / O | Height −5% / +5% |
 | 1…9 | Workspace |
-| s / d | Next occupied / recent workspace |
+| s / Tab | Next occupied / recent workspace |
 | m, 1…9 | Move the window to a workspace and follow it |
 | o | Space picker |
-| Tab / n | Recent / next space |
+| Shift+Tab / n | Recent / next space |
 | ? | Keybindings |
 | x d / x r / x q | Detach / reload config / stop the server |
 

@@ -4,6 +4,7 @@
 mod actions;
 mod agents;
 mod bar;
+mod chrome;
 mod input;
 mod render;
 

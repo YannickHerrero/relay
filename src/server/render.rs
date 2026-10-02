@@ -9,6 +9,7 @@ use crate::ui::{terminal, theme};
 
 pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
     let mut buf = Buffer::empty(area);
+    server.draw_bar(Rect::new(area.x, area.y, area.width, 1), &mut buf);
     let ws = server.model.workspace();
     let focused = ws.focused;
     let mut cursor = None;

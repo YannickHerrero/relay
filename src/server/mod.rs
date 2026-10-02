@@ -2,6 +2,7 @@
 //! their input and display the frames it sends.
 
 mod actions;
+mod bar;
 mod input;
 mod render;
 
@@ -169,6 +170,7 @@ impl Server {
 
     fn main_loop(&mut self, rx: Receiver<Event>) {
         let mut last_render = Instant::now();
+        let mut minute = chrono::Local::now().format("%H:%M").to_string();
         while !self.quit {
             let timeout = if self.dirty {
                 FRAME.saturating_sub(last_render.elapsed())
@@ -182,6 +184,11 @@ impl Server {
             }
             while let Ok(event) = rx.try_recv() {
                 self.handle(event);
+            }
+            let now_minute = chrono::Local::now().format("%H:%M").to_string();
+            if now_minute != minute {
+                minute = now_minute;
+                self.dirty = true;
             }
             if self.dirty && last_render.elapsed() >= FRAME {
                 self.render();

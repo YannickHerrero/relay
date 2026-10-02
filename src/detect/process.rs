@@ -1,18 +1,16 @@
-//! Finds the agent running in the foreground of a pane, from /proc.
+//! Finds the agent running in the foreground of a pane, from /proc on Linux
+//! and libproc on macOS.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use super::Agent;
 
-/// Foreground process group of the terminal `pid` is attached to.
-pub fn foreground_pgid(pid: u32) -> Option<u32> {
-    stat_fields(pid)?.get(5)?.parse().ok()
-}
-
-pub fn cwd(pid: u32) -> Option<PathBuf> {
-    fs::read_link(format!("/proc/{pid}/cwd")).ok()
-}
+#[cfg_attr(target_os = "linux", path = "process/linux.rs")]
+#[cfg_attr(target_os = "macos", path = "process/macos.rs")]
+mod os;
+pub use os::{cwd, foreground_pgid};
+use os::{group_members, name_and_argv};
 
 /// The agent in process group `pgid`: its leader first, then any member.
 pub fn agent_in_group(pgid: u32) -> Option<Agent> {
@@ -25,37 +23,9 @@ pub fn agent_in_group(pgid: u32) -> Option<Agent> {
         .find_map(process_agent)
 }
 
-/// Fields of /proc/<pid>/stat after the parenthesized command name, which may
-/// itself contain spaces: state, ppid, pgrp, session, tty_nr, tpgid, ...
-fn stat_fields(pid: u32) -> Option<Vec<String>> {
-    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
-    let rest = &stat[stat.rfind(')')? + 1..];
-    Some(rest.split_whitespace().map(str::to_owned).collect())
-}
-
-fn group_members(pgid: u32) -> Vec<u32> {
-    let Ok(entries) = fs::read_dir("/proc") else {
-        return Vec::new();
-    };
-    entries
-        .filter_map(|e| e.ok()?.file_name().to_str()?.parse::<u32>().ok())
-        .filter(|pid| {
-            stat_fields(*pid)
-                .and_then(|f| f.get(2)?.parse::<u32>().ok())
-                .is_some_and(|pgrp| pgrp == pgid)
-        })
-        .collect()
-}
-
 fn process_agent(pid: u32) -> Option<Agent> {
-    let comm = fs::read_to_string(format!("/proc/{pid}/comm")).ok()?;
-    let cmdline = fs::read(format!("/proc/{pid}/cmdline")).unwrap_or_default();
-    let argv: Vec<String> = cmdline
-        .split(|b| *b == 0)
-        .filter(|a| !a.is_empty())
-        .map(|a| String::from_utf8_lossy(a).into_owned())
-        .collect();
-    identify(comm.trim(), &argv)
+    let (name, argv) = name_and_argv(pid)?;
+    identify(&name, &argv)
 }
 
 /// Agent named by a process: a runtime or shell (node, sh...) is looked
@@ -168,8 +138,21 @@ mod tests {
     }
 
     #[test]
-    fn own_process_group_is_readable() {
-        let pid = std::process::id();
-        assert!(stat_fields(pid).is_some_and(|f| f.len() > 5));
+    fn own_cwd_is_readable() {
+        let cwd = cwd(std::process::id()).unwrap();
+        assert_eq!(cwd, std::env::current_dir().unwrap());
+    }
+
+    #[test]
+    fn own_process_group_lists_this_process() {
+        let pgid = unsafe { libc::getpgrp() } as u32;
+        assert!(group_members(pgid).contains(&std::process::id()));
+    }
+
+    #[test]
+    fn own_command_line_is_readable() {
+        let (name, argv) = name_and_argv(std::process::id()).unwrap();
+        assert!(!name.is_empty());
+        assert_eq!(argv.first(), std::env::args().next().as_ref());
     }
 }

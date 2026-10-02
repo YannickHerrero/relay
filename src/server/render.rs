@@ -12,6 +12,7 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
     let ws = server.model.workspace();
     let focused = ws.focused;
     let mut cursor = None;
+    let target = server.drop_target();
     let order: Vec<_> = match ws.fullscreen {
         Some(id) => vec![id],
         None => ws.windows().collect(),
@@ -26,7 +27,14 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         }
         let is_focused = focused == Some(id);
         Clear.render(rect, &mut buf);
-        chrome::draw(window, window.rect, is_focused, None, &mut buf);
+        chrome::draw(
+            window,
+            window.rect,
+            is_focused,
+            target == Some(id),
+            None,
+            &mut buf,
+        );
         let shown = terminal::draw(&window.pane.term, inner(window.rect), &mut buf);
         if is_focused {
             cursor = shown;

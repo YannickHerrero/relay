@@ -8,8 +8,11 @@ use crossterm::event::{KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::layout::{Position, Rect};
 
 use super::bar::BarItem;
+use super::chrome::{self, Button};
 use super::{Server, inner};
+use crate::actions::Action;
 use crate::encode;
+use crate::layout::{self, Axis};
 use crate::model::WindowId;
 
 const WHEEL_LINES: i32 = 3;
@@ -21,11 +24,23 @@ pub enum Drag {
     /// The program in the window asked for the mouse and gets the gesture.
     Forward(WindowId),
     Select(WindowId),
+    /// Dragging a title bar: moves a float, or swaps a tiled window with the
+    /// one it is dropped on.
+    Title {
+        window: WindowId,
+        grab: (u16, u16),
+        origin: Rect,
+    },
+    /// Dragging the boundary of a fibonacci split.
+    Split(usize),
+    /// Dragging a floating window's edge.
+    Resize(WindowId),
 }
 
 #[derive(Debug, Default)]
 pub struct MouseState {
     pub drag: Option<Drag>,
+    pub pointer: (u16, u16),
     last_click: Option<(Instant, u16, u16, u8)>,
 }
 
@@ -81,6 +96,7 @@ impl Server {
     }
 
     pub(super) fn on_mouse(&mut self, event: MouseEvent) {
+        self.mouse.pointer = (event.column, event.row);
         let hit = self.hit(event.column, event.row);
         match event.kind {
             MouseEventKind::ScrollUp | MouseEventKind::ScrollDown => self.on_wheel(event, hit),
@@ -88,12 +104,29 @@ impl Server {
             MouseEventKind::Drag(_) | MouseEventKind::Moved => match self.mouse.drag {
                 Some(Drag::Forward(window)) => self.forward_mouse(window, event),
                 Some(Drag::Select(window)) => self.extend_selection(window, event),
+                Some(Drag::Title {
+                    window,
+                    grab,
+                    origin,
+                }) => {
+                    if self.model.is_floating(window) {
+                        self.move_float(window, grab, origin, event.column, event.row);
+                    }
+                }
+                Some(Drag::Split(level)) => self.drag_split(level, event.column, event.row),
+                Some(Drag::Resize(window)) => self.resize_float(window, event.column, event.row),
                 None => {}
             },
             MouseEventKind::Up(_) => match self.mouse.drag.take() {
                 Some(Drag::Forward(window)) => self.forward_mouse(window, event),
                 Some(Drag::Select(window)) => self.finish_selection(window),
-                None => {}
+                Some(Drag::Title { window, .. }) => {
+                    if let Some(target) = self.swap_target(window, event.column, event.row) {
+                        self.model.swap(window, target);
+                        self.relayout();
+                    }
+                }
+                Some(Drag::Split(_) | Drag::Resize(_)) | None => {}
             },
             _ => {}
         }
@@ -144,6 +177,10 @@ impl Server {
                 } else if button == MouseButton::Left {
                     self.start_selection(window, col, row);
                 }
+            }
+            Hit::Border { window } if button == MouseButton::Left => {
+                self.focus(window);
+                self.press_border(window, event.column, event.row);
             }
             Hit::Border { window } => self.focus(window),
             _ => {}
@@ -243,6 +280,124 @@ impl Server {
         use base64::Engine;
         let encoded = base64::engine::general_purpose::STANDARD.encode(text);
         self.send_raw(format!("\x1b]52;c;{encoded}\x07").into_bytes());
+    }
+
+    fn press_border(&mut self, id: WindowId, x: u16, y: u16) {
+        let rect = self.windows[&id].rect;
+        if let Some(button) = chrome::button_at(rect, x, y) {
+            match button {
+                Button::Float => self.execute(Action::WindowToggleFloat),
+                Button::Zoom => self.execute(Action::WindowFullscreen),
+                Button::Close => self.close_window(id),
+            }
+            return;
+        }
+        let fullscreen = self.model.workspace().fullscreen.is_some();
+        self.mouse.drag = if y == rect.y && !fullscreen {
+            Some(Drag::Title {
+                window: id,
+                grab: (x, y),
+                origin: rect,
+            })
+        } else if fullscreen {
+            None
+        } else if self.model.is_floating(id) {
+            Some(Drag::Resize(id))
+        } else {
+            self.split_at(x, y).map(Drag::Split)
+        };
+    }
+
+    /// The split whose boundary runs through a cell: the border columns (or
+    /// rows) on both sides of it.
+    fn split_at(&self, x: u16, y: u16) -> Option<usize> {
+        let ws = self.model.workspace();
+        let (_, splits) =
+            layout::fibonacci_with_splits(self.work_area(), ws.tiled.len(), &ws.ratios);
+        splits.iter().find_map(|split| {
+            let hit = match split.axis {
+                Axis::Vertical => {
+                    let edge = split.first.right();
+                    (x == edge - 1 || x == edge) && y >= split.area.y && y < split.area.bottom()
+                }
+                Axis::Horizontal => {
+                    let edge = split.first.bottom();
+                    (y == edge - 1 || y == edge) && x >= split.area.x && x < split.area.right()
+                }
+            };
+            hit.then_some(split.level)
+        })
+    }
+
+    fn drag_split(&mut self, level: usize, x: u16, y: u16) {
+        let area = self.work_area();
+        let ws = self.model.workspace_mut();
+        let (_, splits) = layout::fibonacci_with_splits(area, ws.tiled.len(), &ws.ratios);
+        let Some(split) = splits.iter().find(|s| s.level == level) else {
+            return;
+        };
+        let position = match split.axis {
+            Axis::Vertical => x,
+            Axis::Horizontal => y,
+        };
+        if ws.ratios.len() <= level {
+            ws.ratios.resize(level + 1, layout::DEFAULT_RATIO);
+        }
+        ws.ratios[level] = layout::ratio_at(split, position);
+        self.relayout();
+    }
+
+    fn move_float(&mut self, id: WindowId, grab: (u16, u16), origin: Rect, x: u16, y: u16) {
+        let area = self.work_area();
+        let Some(window) = self.windows.get_mut(&id) else {
+            return;
+        };
+        let dx = x as i32 - grab.0 as i32;
+        let dy = y as i32 - grab.1 as i32;
+        let max_x = area.right().saturating_sub(origin.width) as i32;
+        let max_y = area.bottom().saturating_sub(origin.height) as i32;
+        let nx = (origin.x as i32 + dx).clamp(area.x as i32, max_x.max(area.x as i32));
+        let ny = (origin.y as i32 + dy).clamp(area.y as i32, max_y.max(area.y as i32));
+        window.float_rect = Some(Rect::new(nx as u16, ny as u16, origin.width, origin.height));
+        self.relayout();
+    }
+
+    fn resize_float(&mut self, id: WindowId, x: u16, y: u16) {
+        let area = self.work_area();
+        let Some(window) = self.windows.get_mut(&id) else {
+            return;
+        };
+        let Some(rect) = window.float_rect else {
+            return;
+        };
+        let width = (x.saturating_sub(rect.x) + 1).clamp(layout::MIN_WIDTH, area.right() - rect.x);
+        let height =
+            (y.saturating_sub(rect.y) + 1).clamp(layout::MIN_HEIGHT, area.bottom() - rect.y);
+        window.float_rect = Some(Rect::new(rect.x, rect.y, width, height));
+        self.relayout();
+    }
+
+    /// The tiled window a dragged tiled window would swap with.
+    pub(super) fn swap_target(&self, dragged: WindowId, x: u16, y: u16) -> Option<WindowId> {
+        if self.model.is_floating(dragged) {
+            return None;
+        }
+        let ws = self.model.workspace();
+        let point = Position::new(x, y);
+        ws.tiled.iter().copied().find(|id| {
+            *id != dragged && self.windows.get(id).is_some_and(|w| w.rect.contains(point))
+        })
+    }
+
+    /// Window highlighted as the drop target of a title drag.
+    pub(super) fn drop_target(&self) -> Option<WindowId> {
+        match self.mouse.drag {
+            Some(Drag::Title { window, .. }) => {
+                let (x, y) = self.mouse.pointer;
+                self.swap_target(window, x, y)
+            }
+            _ => None,
+        }
     }
 }
 

@@ -68,9 +68,17 @@ pub fn title(window: &Window) -> String {
     }
 }
 
-pub fn draw(window: &Window, rect: Rect, focused: bool, shimmer: Option<f32>, buf: &mut Buffer) {
+pub fn draw(
+    window: &Window,
+    rect: Rect,
+    focused: bool,
+    highlight: bool,
+    shimmer: Option<f32>,
+    buf: &mut Buffer,
+) {
     let status = window.tracker.status();
     let border = match (focused, status) {
+        _ if highlight => theme::BLUE,
         (true, _) => theme::ACCENT,
         (false, Some(Status::Blocked)) => theme::PEACH,
         _ => theme::SURFACE1,

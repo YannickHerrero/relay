@@ -65,6 +65,9 @@ pub struct Window {
     pub rect: Rect,
     pub detect: agents::DetectState,
     pub slide: Option<motion::Slide>,
+    /// Typed once the shell prints its first prompt, so it is not echoed
+    /// before it.
+    pub pending_input: Option<String>,
 }
 
 enum Out {
@@ -262,6 +265,9 @@ impl Server {
             Event::Pane(PaneEvent::Output(id, bytes)) => {
                 if let Some(window) = self.windows.get_mut(&id) {
                     window.pane.feed(&bytes);
+                    if let Some(input) = window.pending_input.take() {
+                        window.pane.write(input);
+                    }
                     let copies = std::mem::take(&mut window.pane.clipboard);
                     for text in copies {
                         self.copy_to_clipboard(&text);
@@ -443,9 +449,8 @@ impl Server {
             env: vec![],
         };
         let id = self.spawn_window(at, spawn, false, floating)?;
-        if let Some(command) = command {
-            let window = &self.windows[&id];
-            window.pane.write(format!("{command}\r"));
+        if let (Some(command), Some(window)) = (command, self.windows.get_mut(&id)) {
+            window.pending_input = Some(format!("{command}\r"));
         }
         Some(id)
     }
@@ -487,6 +492,7 @@ impl Server {
                 rect: area,
                 detect: Default::default(),
                 slide: None,
+                pending_input: None,
             },
         );
         self.model.add(at, id, popup || floating);

@@ -131,9 +131,12 @@ pub fn draw(
         }
     }
 
+    // Only a name the user gave is shown; unnamed windows keep a bare border.
     let max = right_edge.saturating_sub(rect.x + 3) as usize;
-    if max > 2 {
-        let title = truncate(&title(window), max - 2);
+    if let Some(name) = window.name.as_deref()
+        && max > 2
+    {
+        let title = truncate(name, max - 2);
         let style = if focused {
             Style::new().fg(theme::TEXT).add_modifier(Modifier::BOLD)
         } else {

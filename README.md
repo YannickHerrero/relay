@@ -41,7 +41,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 |---|---|
 | Enter | New terminal |
 | q | Close the window |
-| , | Rename the window (empty name restores the automatic title) |
+| , | Name the window; only named windows show a title (empty name removes it) |
 | w | Rename the workspace, shown as `3 - name` in the bar (empty name restores the number) |
 | f | Fullscreen |
 | t | Float / tile |

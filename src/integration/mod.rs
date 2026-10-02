@@ -11,13 +11,13 @@ use crate::config::home;
 const PI_EXTENSION: &str = include_str!("relay-agent-state.ts");
 const CLAUDE_HOOK: &str = "[ -n \"$RELAY_BIN\" ] && \"$RELAY_BIN\" hook claude || true";
 
-fn claude_dir() -> PathBuf {
+pub fn claude_dir() -> PathBuf {
     std::env::var_os("CLAUDE_CONFIG_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| home().join(".claude"))
 }
 
-fn pi_dir() -> PathBuf {
+pub fn pi_dir() -> PathBuf {
     std::env::var_os("PI_CODING_AGENT_DIR")
         .map(PathBuf::from)
         .unwrap_or_else(|| home().join(".pi/agent"))

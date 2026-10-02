@@ -12,6 +12,7 @@ mod pane;
 mod persist;
 mod protocol;
 mod server;
+mod transcript;
 mod ui;
 
 use std::os::unix::net::UnixStream;

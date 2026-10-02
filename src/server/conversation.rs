@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 
 use super::{Event, Server};
 use crate::detect::Agent;
+use crate::detect::prompt;
 use crate::detect::tracker::Status;
 use crate::model::WindowId;
 use crate::protocol::Update;
@@ -224,7 +225,22 @@ impl Server {
             Entry::Assistant { text, at } => Some(("assistant", text, at)),
             Entry::Action(_) => None,
         });
+        let running = entries.iter().rev().find_map(|e| match e {
+            Entry::Action(a) if a.status == transcript::ActionStatus::Running => {
+                Some(json!({ "tool": a.tool, "target": a.target }))
+            }
+            _ => None,
+        });
+        let prompt = (window.tracker.status() == Some(Status::Blocked))
+            .then(|| prompt::parse(&window.pane.snapshot().text))
+            .flatten()
+            .map(|p| {
+                let mut p = json!(p);
+                p["action"] = running.unwrap_or(Value::Null);
+                p
+            });
         json!({
+            "prompt": prompt,
             "state_since": window.status_since.since,
             "last_activity": entries.last().and_then(Entry::at),
             "last_message": last_message.map(|(role, text, at)| json!({

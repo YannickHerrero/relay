@@ -1,5 +1,6 @@
 pub mod manifest;
 pub mod process;
+pub mod prompt;
 pub mod tracker;
 
 use std::sync::OnceLock;

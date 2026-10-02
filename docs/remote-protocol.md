@@ -54,6 +54,7 @@ Every message has an `event` field.
       "cwd": "~/dev/relay",
       "focused": false,
       "floating": false,
+      "prompt": null,
       "state_since": "2026-10-02T09:41:12.204Z",
       "last_activity": "2026-10-02T09:41:40.789Z",
       "last_message": {"role": "assistant", "text": "Heartbeat added. The server now sends…", "at": "2026-10-02T09:41:40.789Z"}
@@ -63,6 +64,22 @@ Every message has an `event` field.
 ```
 
 `agent` is `claude`, `pi` or null. `status` is `working`, `blocked` (needs you), `done` (finished, not looked at yet), `idle`, `unknown`, or null for windows without an agent. `workspace` counts from 1. `state_since` is when `status` last changed (for "Working… 12 s"). `last_activity` and `last_message` (at most 200 characters, on one line) come from the conversation and are null without one. Times are RFC 3339 in UTC.
+
+`prompt` is set while the agent waits on a choice (`status` is `blocked`): a permission, a question, a dialog. It is read from the screen, so it follows what the agent shows; `action` is the tool call waiting for permission, from the conversation, or null. Answer by sending an option's `keys` with `send_keys`; for "Type something." send its keys, then the text with `send_text`.
+
+```json
+{
+  "title": "Bash command",
+  "lines": ["Remove relay test file", "rm -rf relay-test-file", "", "Do you want to proceed?"],
+  "options": [
+    {"label": "Yes", "keys": ["1"]},
+    {"label": "No", "keys": ["2"]}
+  ],
+  "action": {"tool": "bash", "target": "rm -rf relay-test-file"}
+}
+```
+
+Options may carry a `description`. Unnumbered options are reached with arrows: `{"label": "Yes, I trust this folder", "keys": ["Down", "Enter"]}`.
 
 **`transcript`**: the conversation of the window the client views (see `view`). Entries from `from` on replace what the client has; earlier entries stay. A first message starts at `from` 0 or at the last 100 entries; later ones usually append, or start at the action whose result just arrived. `from` 0 with no entries means the window's agent or session changed.
 

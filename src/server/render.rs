@@ -32,5 +32,9 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
             cursor = shown;
         }
     }
+    if server.leader.is_some() {
+        server.draw_leader(area, &mut buf);
+        cursor = None;
+    }
     (buf, cursor)
 }

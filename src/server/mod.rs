@@ -7,6 +7,7 @@ mod bar;
 mod chrome;
 mod input;
 mod render;
+mod whichkey;
 
 use std::collections::HashMap;
 use std::io::Write;

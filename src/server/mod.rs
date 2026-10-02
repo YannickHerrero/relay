@@ -234,7 +234,9 @@ impl Server {
             tx,
             dirty: true,
             quit: false,
-            size: (80, 24),
+            // Until a client attaches: roomy enough for agents that only
+            // remote clients follow.
+            size: (160, 48),
             leader: None,
             resize_mode: false,
             mouse: Default::default(),

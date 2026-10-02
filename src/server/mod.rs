@@ -10,6 +10,7 @@ mod mouse;
 mod overlay;
 mod palette;
 mod render;
+mod spaces;
 mod whichkey;
 
 use std::collections::HashMap;

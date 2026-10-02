@@ -85,7 +85,7 @@ impl Server {
             Action::Popup(command) => self.popup(&command),
             Action::Palette => self.open_list(ListKind::Palette),
             Action::Keybindings => self.open_list(ListKind::Keys),
-            Action::SpacePicker => {}
+            Action::SpacePicker => self.open_list(ListKind::Spaces),
             Action::Detach => self.detach(),
             Action::ConfigReload => self.reload_config(),
             Action::ServerStop => self.quit = true,

@@ -164,6 +164,9 @@ impl Server {
 
     fn on_press(&mut self, event: MouseEvent, button: MouseButton, hit: Hit) {
         match hit {
+            Hit::Bar(Some(BarItem::Space)) if button == MouseButton::Left => {
+                self.open_list(super::overlay::ListKind::Spaces);
+            }
             Hit::Bar(Some(BarItem::Workspace(n))) if button == MouseButton::Left => {
                 self.model.space_mut().switch(n);
                 self.mark_focused_seen();

@@ -11,6 +11,7 @@ use unicode_width::UnicodeWidthStr;
 
 use super::Server;
 use super::bar::status_style;
+use super::spaces::Prompt;
 use crate::actions::Action;
 use crate::detect::tracker::Status;
 use crate::keys::Chord;
@@ -21,6 +22,7 @@ use crate::ui::{fuzzy, panel, theme};
 pub enum ListKind {
     Palette,
     Keys,
+    Spaces,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -48,6 +50,9 @@ pub struct ListOverlay {
     pub selected: usize,
     pub scroll: usize,
     pub opened: Instant,
+    pub prompt: Option<Prompt>,
+    /// `D` was pressed once in the space picker; a second `D` deletes.
+    pub confirm_delete: bool,
 }
 
 impl ListOverlay {
@@ -58,6 +63,8 @@ impl ListOverlay {
             selected: 0,
             scroll: 0,
             opened: Instant::now(),
+            prompt: None,
+            confirm_delete: false,
         }
     }
 }
@@ -149,7 +156,12 @@ impl Server {
         self.overlay = if same {
             None
         } else {
-            Some(ListOverlay::new(kind))
+            let mut overlay = ListOverlay::new(kind);
+            // Enter goes back and forth between the last two spaces.
+            if kind == ListKind::Spaces {
+                overlay.selected = self.model.recent;
+            }
+            Some(overlay)
         };
         self.leader = None;
         self.dirty = true;
@@ -159,6 +171,7 @@ impl Server {
         let rows = match overlay.kind {
             ListKind::Palette => self.palette_rows(),
             ListKind::Keys => self.key_rows(),
+            ListKind::Spaces => self.space_rows(),
         };
         filter(rows, &overlay.query)
     }
@@ -220,6 +233,9 @@ impl Server {
     }
 
     fn list_key(&mut self, overlay: &mut ListOverlay, key: KeyEvent) -> Outcome {
+        if overlay.kind == ListKind::Spaces {
+            return self.spaces_key(overlay, key);
+        }
         let toggles = Chord::from_event(&key)
             .and_then(|c| self.keymap.direct.get(&c))
             .is_some_and(|a| *a == Action::Palette);
@@ -289,9 +305,21 @@ impl Server {
         let (title, footer) = match overlay.kind {
             ListKind::Palette => ("Palette", "⏎ run · @w @b @d filter · esc close"),
             ListKind::Keys => ("Keybindings", "type to filter · ⏎ run · esc close"),
+            ListKind::Spaces => (
+                "Spaces",
+                "⏎ switch · N new · E rename · D D delete · esc close",
+            ),
         };
         let inner = panel::draw(panel_rect, title, footer, buf);
-        self.draw_input(inner, "❯", &overlay.query, buf);
+        match &overlay.prompt {
+            Some(prompt) => self.draw_input(inner, prompt.title(), &prompt.text, buf),
+            None => self.draw_input(inner, "❯", &overlay.query, buf),
+        }
+        if overlay.confirm_delete {
+            let warn = "press D again to delete";
+            let x = inner.right().saturating_sub(warn.width() as u16 + 1);
+            buf.set_string(x, inner.y, warn, Style::new().fg(theme::PEACH));
+        }
 
         let visible = list.height as usize;
         for (i, row) in rows.iter().skip(overlay.scroll).take(visible).enumerate() {

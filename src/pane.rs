@@ -62,6 +62,8 @@ pub struct Pane {
     /// Clipboard writes the program asked for (OSC 52), for the client.
     pub clipboard: Vec<String>,
     pub bell: bool,
+    /// Bumped on every output, so detection can skip unchanged screens.
+    pub seq: u64,
 }
 
 impl Pane {
@@ -143,6 +145,7 @@ impl Pane {
             rows,
             clipboard: Vec::new(),
             bell: false,
+            seq: 0,
         })
     }
 
@@ -156,6 +159,7 @@ impl Pane {
 
     /// Feeds program output to the emulator and answers its queries.
     pub fn feed(&mut self, bytes: &[u8]) {
+        self.seq += 1;
         self.parser.advance(&mut self.term, bytes);
         let events: Vec<TermEvent> = std::mem::take(&mut *self.events.0.lock().unwrap());
         for event in events {

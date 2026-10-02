@@ -2,6 +2,7 @@
 //! their input and display the frames it sends.
 
 mod actions;
+mod agents;
 mod bar;
 mod input;
 mod render;
@@ -52,6 +53,7 @@ pub struct Window {
     pub float_rect: Option<Rect>,
     /// Where the layout puts the window.
     pub rect: Rect,
+    pub detect: agents::DetectState,
 }
 
 enum Out {
@@ -171,11 +173,15 @@ impl Server {
     fn main_loop(&mut self, rx: Receiver<Event>) {
         let mut last_render = Instant::now();
         let mut minute = chrono::Local::now().format("%H:%M").to_string();
+        let mut last_detect = Instant::now();
         while !self.quit {
+            let until_detect = agents::DETECT_INTERVAL.saturating_sub(last_detect.elapsed());
             let timeout = if self.dirty {
-                FRAME.saturating_sub(last_render.elapsed())
+                FRAME
+                    .saturating_sub(last_render.elapsed())
+                    .min(until_detect)
             } else {
-                Duration::from_millis(250)
+                until_detect
             };
             match rx.recv_timeout(timeout) {
                 Ok(event) => self.handle(event),
@@ -184,6 +190,10 @@ impl Server {
             }
             while let Ok(event) = rx.try_recv() {
                 self.handle(event);
+            }
+            if last_detect.elapsed() >= agents::DETECT_INTERVAL {
+                last_detect = Instant::now();
+                self.detect_agents(last_detect);
             }
             let now_minute = chrono::Local::now().format("%H:%M").to_string();
             if now_minute != minute {
@@ -403,6 +413,7 @@ impl Server {
                 popup,
                 float_rect: None,
                 rect: area,
+                detect: Default::default(),
             },
         );
         self.model.add(at, id, popup);

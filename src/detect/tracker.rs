@@ -72,6 +72,11 @@ impl Tracker {
         })
     }
 
+    /// A working-to-idle change is waiting for confirmation.
+    pub fn holding(&self) -> bool {
+        self.pending_idle.is_some()
+    }
+
     /// Whether screen detection has anything to decide right now.
     pub fn wants_screen(&self, now: Instant) -> bool {
         self.agent.is_some()

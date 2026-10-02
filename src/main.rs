@@ -9,6 +9,7 @@ mod keys;
 mod layout;
 mod model;
 mod pane;
+mod persist;
 mod protocol;
 mod server;
 mod ui;

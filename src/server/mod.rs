@@ -13,6 +13,7 @@ mod mouse;
 mod overlay;
 mod palette;
 mod render;
+mod session;
 mod spaces;
 mod whichkey;
 
@@ -96,6 +97,8 @@ pub struct Server {
     menu: Option<menu::Menu>,
     /// Start of the shimmer cycle.
     epoch: Instant,
+    /// Last state written to disk.
+    saved: Option<crate::persist::State>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -120,6 +123,9 @@ pub fn run() -> anyhow::Result<()> {
     });
 
     let mut server = Server::new(tx);
+    if let Some(state) = crate::persist::load(&crate::persist::path()) {
+        server.restore(state);
+    }
     server.main_loop(rx);
     let _ = std::fs::remove_file(&socket);
     Ok(())
@@ -186,6 +192,7 @@ impl Server {
             overlay: None,
             menu: None,
             epoch: Instant::now(),
+            saved: None,
         }
     }
 
@@ -194,6 +201,7 @@ impl Server {
         let mut minute = chrono::Local::now().format("%H:%M").to_string();
         let mut last_detect = Instant::now();
         let mut animation_due: Option<Instant> = None;
+        let mut last_save = Instant::now();
         while !self.quit {
             let until_detect = agents::DETECT_INTERVAL.saturating_sub(last_detect.elapsed());
             let until_animation = animation_due
@@ -223,6 +231,10 @@ impl Server {
                 minute = now_minute;
                 self.dirty = true;
             }
+            if last_save.elapsed() >= session::SAVE_INTERVAL {
+                last_save = Instant::now();
+                self.save_state();
+            }
             if animation_due.is_some_and(|due| Instant::now() >= due) {
                 self.dirty = true;
             }
@@ -234,6 +246,7 @@ impl Server {
                     .map(|frame| last_render + frame);
             }
         }
+        self.save_state();
         for window in self.windows.values_mut() {
             window.pane.kill();
         }

@@ -3,7 +3,6 @@
 use ratatui::style::Color;
 
 pub const BASE: Color = Color::Rgb(0x1e, 0x1e, 0x2e);
-pub const MANTLE: Color = Color::Rgb(0x18, 0x18, 0x25);
 pub const SURFACE0: Color = Color::Rgb(0x31, 0x32, 0x44);
 pub const SURFACE1: Color = Color::Rgb(0x45, 0x47, 0x5a);
 pub const OVERLAY0: Color = Color::Rgb(0x6c, 0x70, 0x86);

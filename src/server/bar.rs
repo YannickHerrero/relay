@@ -53,17 +53,16 @@ impl Server {
         let mut segments = Vec::new();
         let space = self.model.space();
         let mut x = 0u16;
-        let mut push =
-            |segments: &mut Vec<Segment>, x: &mut u16, text: String, style: Style, item| {
-                let w = text.width() as u16;
-                segments.push(Segment {
-                    x: *x,
-                    text,
-                    style,
-                    item,
-                });
-                *x += w;
-            };
+        let push = |segments: &mut Vec<Segment>, x: &mut u16, text: String, style: Style, item| {
+            let w = text.width() as u16;
+            segments.push(Segment {
+                x: *x,
+                text,
+                style,
+                item,
+            });
+            *x += w;
+        };
 
         push(
             &mut segments,

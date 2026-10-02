@@ -307,11 +307,10 @@ mod tests {
     }
 
     fn run_to_exit(pane: &mut Pane, rx: &mpsc::Receiver<PaneEvent>) {
-        loop {
-            match rx.recv_timeout(Duration::from_secs(5)).expect("pane event") {
-                PaneEvent::Output(_, bytes) => pane.feed(&bytes),
-                PaneEvent::Exited(_) => break,
-            }
+        while let PaneEvent::Output(_, bytes) =
+            rx.recv_timeout(Duration::from_secs(5)).expect("pane event")
+        {
+            pane.feed(&bytes);
         }
     }
 

@@ -166,13 +166,7 @@ pub fn neighbor(rects: &[Rect], from: usize, dir: Direction) -> Option<usize> {
 }
 
 fn overlap_gap(a0: u16, a1: u16, b0: u16, b1: u16) -> u16 {
-    if a1 <= b0 {
-        b0 - a1
-    } else if b1 <= a0 {
-        a0 - b1
-    } else {
-        0
-    }
+    b0.saturating_sub(a1).max(a0.saturating_sub(b1))
 }
 
 fn center_distance(a: &Rect, b: &Rect) -> u32 {

@@ -5,12 +5,11 @@ use std::time::{Duration, Instant};
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-use ratatui::style::Color;
+use ratatui::style::Modifier;
 
 use super::Server;
 use crate::config::Motion;
 use crate::detect::tracker::Status;
-use crate::ui::theme;
 
 pub const SLIDE: Duration = Duration::from_millis(140);
 pub const FADE: Duration = Duration::from_millis(120);
@@ -64,24 +63,19 @@ pub fn seed(rect: Rect) -> Rect {
     )
 }
 
-/// Fades the cells an overlay changed from what was under them.
+/// Fades in the cells an overlay changed: palette colors cannot be mixed,
+/// so they show dimmed for the first part of the fade.
 pub fn fade(before: &Buffer, after: &mut Buffer, opened: Instant, now: Instant) {
-    let t = ease_out(progress(opened, FADE, now));
-    if t >= 1.0 {
+    if ease_out(progress(opened, FADE, now)) >= 0.6 {
         return;
     }
-    let solid = |c: Color| if c == Color::Reset { theme::BASE } else { c };
     let area = after.area;
     for y in area.top()..area.bottom() {
         for x in area.left()..area.right() {
-            let old = &before[(x, y)];
-            let new = &after[(x, y)];
-            if old == new {
-                continue;
+            if before[(x, y)] != after[(x, y)] {
+                let cell = &mut after[(x, y)];
+                cell.modifier.insert(Modifier::DIM);
             }
-            let fg = theme::blend(solid(old.bg), solid(new.fg), t);
-            let bg = theme::blend(solid(old.bg), solid(new.bg), t);
-            after[(x, y)].set_fg(fg).set_bg(bg);
         }
     }
 }

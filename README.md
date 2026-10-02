@@ -114,6 +114,8 @@ Windows get `RELAY=1`, `RELAY_WINDOW_ID`, `RELAY_SOCKET` and `RELAY_BIN` in thei
 
 ## Configuration
 
+relay draws its interface with the terminal's own 16-color palette, so it follows the terminal's theme, light or dark.
+
 `~/.config/relay/config.toml`:
 
 ```toml

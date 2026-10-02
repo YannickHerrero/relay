@@ -70,7 +70,7 @@ impl Server {
             format!(" {} ", space.name),
             Style::new()
                 .fg(theme::BASE)
-                .bg(theme::ACCENT)
+                .bg(theme::MAUVE)
                 .add_modifier(Modifier::BOLD),
             Some(BarItem::Space),
         );
@@ -91,7 +91,7 @@ impl Server {
                     .bg(theme::BLUE)
                     .add_modifier(Modifier::BOLD)
             } else {
-                Style::new().fg(theme::TEXT).bg(theme::SURFACE0)
+                Style::new().fg(theme::SURFACE_TEXT).bg(theme::SURFACE0)
             };
             let label = match &ws.name {
                 Some(name) => format!(" {} - {name} ", n + 1),

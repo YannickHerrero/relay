@@ -150,10 +150,10 @@ pub fn draw(
 fn shimmer_cells(buf: &mut Buffer, x: u16, y: u16, width: u16, phase: f32) {
     let center = phase * (width as f32 + 6.0) - 3.0;
     for i in 0..width {
-        let distance = (i as f32 - center).abs();
-        if distance < 2.5 {
+        if (i as f32 - center).abs() < 1.5 {
             let cell = &mut buf[(x + i, y)];
-            cell.fg = theme::blend(theme::MAUVE, theme::TEXT, 1.0 - distance / 2.5);
+            cell.modifier.insert(Modifier::BOLD);
+            cell.fg = theme::TEXT;
         }
     }
 }

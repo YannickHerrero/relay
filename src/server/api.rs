@@ -147,6 +147,15 @@ impl Server {
                 before,
                 limit,
             } => self.transcript_page(&window, before, limit),
+            Request::ReadScreen { window } => {
+                let id = parse_window(&window)?;
+                let window = self
+                    .windows
+                    .get(&id)
+                    .with_context(|| format!("no window {window}"))?;
+                let text = window.pane.snapshot().text;
+                Ok(json!({ "lines": text.lines().collect::<Vec<_>>() }))
+            }
             Request::RemotePairing { revoke } => self.remote_pairing(revoke),
             Request::ReloadConfig => {
                 self.reload_config();

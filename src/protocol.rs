@@ -192,6 +192,10 @@ pub enum Request {
         #[serde(default)]
         limit: Option<usize>,
     },
+    /// The window's screen as text.
+    ReadScreen {
+        window: String,
+    },
     /// What a phone needs to connect; `revoke` first replaces the token and
     /// disconnects every remote client.
     RemotePairing {

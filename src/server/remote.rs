@@ -191,6 +191,7 @@ fn allowed(request: &Request) -> bool {
             | Request::SendKeys { .. }
             | Request::View { .. }
             | Request::Transcript { .. }
+            | Request::ReadScreen { .. }
     )
 }
 

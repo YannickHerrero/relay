@@ -122,6 +122,7 @@ A command is an `id` chosen by the client and a `method` with its fields.
 | `send_text` | `window`, `text` | null; end `text` with `\r` to press Enter |
 | `send_keys` | `window`, `keys` | null; keys are chords like `Enter`, `Esc`, `Down`, `Ctrl+C`, `1` |
 | `view` | `window`, or null to stop | `{"total"}`; follows the window's conversation with `transcript` messages. While a client views a window, its agent's news counts as seen: `done` becomes `idle` |
+| `read_screen` | `window` | `{"lines"}`: the window's screen as text, for windows without a conversation |
 | `transcript` | `window`, `before`, `limit` (both optional) | `{"from", "total", "entries"}`: up to `limit` entries (100, at most 500) before index `before` (the end), to scroll back |
 
 ```json

@@ -104,6 +104,8 @@ enum Cmd {
     },
     /// Print the state as a JSON line now and whenever it changes.
     Events,
+    /// Print a window's screen as text.
+    Screen { window: String },
     /// Print the conversation of an agent's window, as remote clients get it.
     Transcript {
         window: String,
@@ -216,6 +218,13 @@ fn main() -> anyhow::Result<()> {
             seq,
         },
         Cmd::Events => return follow_events(),
+        Cmd::Screen { window } => {
+            let screen = send_request(Request::ReadScreen { window }, false)?;
+            for line in screen["lines"].as_array().into_iter().flatten() {
+                println!("{}", line.as_str().unwrap_or_default());
+            }
+            return Ok(());
+        }
         Cmd::Transcript {
             window,
             before,

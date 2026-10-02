@@ -140,6 +140,16 @@ impl Server {
                 window.tracker.on_hook_state(agent, state, seq, visible);
                 Ok(Value::Null)
             }
+            Request::View { window } => {
+                let id = parse_window(&window)?;
+                let window = self
+                    .windows
+                    .get_mut(&id)
+                    .with_context(|| format!("no window {window}"))?;
+                window.tracker.mark_seen();
+                Ok(Value::Null)
+            }
+            Request::RemotePairing { revoke } => self.remote_pairing(revoke),
             Request::ReloadConfig => {
                 self.reload_config();
                 Ok(Value::Null)

@@ -25,6 +25,24 @@ pub struct Config {
     pub projects: Projects,
     /// Palette entries: name to command, run in a new window.
     pub programs: BTreeMap<String, String>,
+    pub remote: Remote,
+}
+
+/// WebSocket access for remote clients such as omnitool.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Remote {
+    /// Address to listen on, read when the server starts; empty turns remote
+    /// access off. Keep it on loopback behind `tailscale serve`, which adds
+    /// TLS: the token travels in the clear otherwise.
+    pub listen: String,
+    /// Address clients reach the server at, put in the pairing code.
+    pub url: String,
+    /// Machine name shown in clients; empty means the host name.
+    pub name: String,
+    /// Web origins allowed to connect. Clients that send no origin (not a
+    /// browser) only need the token.
+    pub origins: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -46,6 +64,7 @@ impl Default for Config {
                 ("pi".into(), "pi".into()),
                 ("lazygit".into(), "lazygit".into()),
             ]),
+            remote: Remote::default(),
         }
     }
 }

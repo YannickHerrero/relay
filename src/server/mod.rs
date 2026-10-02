@@ -13,6 +13,7 @@ mod motion;
 mod mouse;
 mod overlay;
 mod palette;
+mod remote;
 mod rename;
 mod render;
 mod session;
@@ -58,6 +59,9 @@ pub enum Event {
     ClientGone(u64),
     Api(Request, Sender<Response>),
     Subscribe(UnixStream),
+    RemoteHello(remote::Hello),
+    Remote(u64, protocol::Command),
+    RemoteGone(u64),
 }
 
 pub struct Window {
@@ -126,6 +130,10 @@ pub struct Server {
     subscribers: Vec<Sender<Update>>,
     /// Last state sent to subscribers.
     published: Option<Update>,
+    /// Set while remote access is on.
+    remote_token: Option<String>,
+    /// Remote clients that passed their hello.
+    remotes: HashMap<u64, Sender<Update>>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -150,6 +158,7 @@ pub fn run() -> anyhow::Result<()> {
     });
 
     let mut server = Server::new(tx);
+    remote::start(&mut server);
     if let Some(state) = crate::persist::load(&crate::persist::path()) {
         server.restore(state);
     }
@@ -230,6 +239,8 @@ impl Server {
             saved: None,
             subscribers: Vec::new(),
             published: None,
+            remote_token: None,
+            remotes: HashMap::new(),
         }
     }
 
@@ -335,6 +346,11 @@ impl Server {
                 }
             }
             Event::Subscribe(stream) => self.subscribe(stream),
+            Event::RemoteHello(hello) => self.remote_hello(hello),
+            Event::Remote(id, command) => self.remote_command(id, command),
+            Event::RemoteGone(id) => {
+                self.remotes.remove(&id);
+            }
             Event::Api(request, reply) => {
                 let response = match self.api(request) {
                     Ok(value) => Response::Ok(value),

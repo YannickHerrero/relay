@@ -16,25 +16,32 @@ impl Server {
                 }
             }
         });
-        if tx.send(self.state_update()).is_ok() {
+        if tx.send(self.share_state()).is_ok() {
             self.subscribers.push(tx);
         }
     }
 
-    /// Sends the state to subscribers when it differs from what they have.
+    /// Sends the state to subscribers and remote clients when it differs
+    /// from what they have.
     pub(super) fn publish(&mut self) {
-        if self.subscribers.is_empty() {
+        if self.subscribers.is_empty() && self.remotes.is_empty() {
             self.published = None;
             return;
         }
+        self.share_state();
+    }
+
+    /// The current state, after bringing every client up to date with it.
+    pub(super) fn share_state(&mut self) -> Update {
         let update = self.state_update();
-        if self.published.as_ref() == Some(&update) {
-            return;
+        if self.published.as_ref() != Some(&update) {
+            // A client whose connection thread ended has disconnected.
+            self.subscribers
+                .retain(|tx: &Sender<Update>| tx.send(update.clone()).is_ok());
+            self.remotes.retain(|_, tx| tx.send(update.clone()).is_ok());
+            self.published = Some(update.clone());
         }
-        // A subscriber whose writer thread ended has disconnected.
-        self.subscribers
-            .retain(|tx: &Sender<Update>| tx.send(update.clone()).is_ok());
-        self.published = Some(update);
+        update
     }
 
     fn state_update(&self) -> Update {

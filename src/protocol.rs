@@ -95,7 +95,8 @@ pub enum ServerMsg {
 }
 
 /// Pushed to subscribers: the whole state when they connect, then again
-/// whenever it changes.
+/// whenever it changes. Remote clients also get replies and a reason when
+/// they are let go.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Update {
@@ -103,6 +104,31 @@ pub enum Update {
         spaces: Vec<serde_json::Value>,
         windows: Vec<serde_json::Value>,
     },
+    Reply {
+        id: u64,
+        result: Response,
+    },
+    Closed {
+        reason: String,
+    },
+}
+
+/// Version of the remote protocol, sent by clients in their hello.
+pub const REMOTE_VERSION: u32 = 1;
+
+/// First message of a remote client.
+#[derive(Debug, Deserialize)]
+pub struct RemoteHello {
+    pub v: u32,
+    pub token: String,
+}
+
+/// A request from a remote client; its reply carries the same `id`.
+#[derive(Debug, Deserialize)]
+pub struct Command {
+    pub id: u64,
+    #[serde(flatten)]
+    pub request: Request,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -146,11 +172,21 @@ pub enum Request {
         #[serde(default)]
         seq: u64,
     },
+    /// A remote client shows the window: its agent's news counts as seen.
+    View {
+        window: String,
+    },
+    /// What a phone needs to connect; `revoke` first replaces the token and
+    /// disconnects every remote client.
+    RemotePairing {
+        #[serde(default)]
+        revoke: bool,
+    },
     ReloadConfig,
     Stop,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Response {
     Ok(serde_json::Value),
@@ -206,6 +242,14 @@ mod tests {
             serde_json::to_string(&update).unwrap(),
             r#"{"event":"state","spaces":[],"windows":[]}"#
         );
+    }
+
+    #[test]
+    fn commands_carry_an_id_next_to_the_method() {
+        let json = r#"{"id":7,"method":"send_keys","window":"w3","keys":["Esc"]}"#;
+        let command: Command = serde_json::from_str(json).unwrap();
+        assert_eq!(command.id, 7);
+        assert!(matches!(command.request, Request::SendKeys { ref keys, .. } if keys == &["Esc"]));
     }
 
     #[test]

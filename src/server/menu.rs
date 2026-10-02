@@ -41,6 +41,7 @@ impl Server {
             ("New terminal".to_owned(), Action::Spawn("terminal".into())),
             ("Fullscreen".to_owned(), Action::WindowFullscreen),
             ("Float / tile".to_owned(), Action::WindowToggleFloat),
+            ("Rename".to_owned(), Action::WindowRename),
         ];
         for n in (0..WORKSPACES).filter(|n| *n != current) {
             items.push((

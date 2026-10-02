@@ -51,6 +51,9 @@ pub fn button_at(rect: Rect, x: u16, y: u16) -> Option<Button> {
 /// The title a window shows: its terminal title without a leading spinner,
 /// else its agent, else `shell`.
 pub fn title(window: &Window) -> String {
+    if let Some(name) = &window.name {
+        return name.clone();
+    }
     let raw = window.pane.title.trim();
     let mut chars = raw.chars();
     let stripped = match chars.next() {

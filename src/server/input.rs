@@ -43,6 +43,10 @@ impl Server {
     }
 
     fn on_key(&mut self, key: KeyEvent) {
+        if self.rename.is_some() {
+            self.on_rename_key(key);
+            return;
+        }
         if self.menu.is_some() {
             self.on_menu_key(key);
             return;

@@ -49,6 +49,8 @@ pub struct WindowState {
     /// Claude session id or pi session file, to resume the conversation.
     #[serde(default)]
     pub session: Option<String>,
+    #[serde(default)]
+    pub name: Option<String>,
 }
 
 pub fn path() -> PathBuf {
@@ -99,6 +101,7 @@ mod tests {
                         floating: None,
                         agent: Some(Agent::Claude),
                         session: Some("abc".into()),
+                        name: Some("api".into()),
                     }],
                     focused: Some(0),
                     fullscreen: None,

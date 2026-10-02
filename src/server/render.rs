@@ -54,6 +54,10 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         }
     }
 
+    if server.rename.is_some() {
+        server.draw_rename(area, &mut buf);
+        cursor = None;
+    }
     if server.resize_mode {
         server.draw_resize_hint(area, &mut buf);
     }

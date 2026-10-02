@@ -50,6 +50,7 @@ impl Server {
                                         .flatten(),
                                     agent: window.tracker.agent(),
                                     session: window.tracker.session().map(str::to_owned),
+                                    name: window.name.clone(),
                                 }
                             })
                             .collect();
@@ -127,6 +128,7 @@ impl Server {
                         if let (Some(_), Some(session)) = (&resume, &window.session) {
                             w_.tracker.restore(session.clone());
                         }
+                        w_.name = window.name.clone();
                     }
                     ids.push(id);
                 }

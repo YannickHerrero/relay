@@ -56,6 +56,11 @@ impl Server {
                     self.close_window(id);
                 }
             }
+            Action::WindowRename => {
+                if let Some(id) = self.model.focused() {
+                    self.start_rename(id);
+                }
+            }
             Action::WindowMoveWorkspace { workspace, follow } => {
                 if let Some(id) = self.model.focused() {
                     self.model.move_to_workspace(id, workspace - 1, follow);

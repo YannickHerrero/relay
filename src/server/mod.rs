@@ -12,6 +12,7 @@ mod motion;
 mod mouse;
 mod overlay;
 mod palette;
+mod rename;
 mod render;
 mod session;
 mod spaces;
@@ -68,6 +69,8 @@ pub struct Window {
     /// Typed once the shell prints its first prompt, so it is not echoed
     /// before it.
     pub pending_input: Option<String>,
+    /// Set by the user; replaces the automatic title.
+    pub name: Option<String>,
 }
 
 enum Out {
@@ -99,6 +102,7 @@ pub struct Server {
     mouse: mouse::MouseState,
     overlay: Option<overlay::ListOverlay>,
     menu: Option<menu::Menu>,
+    rename: Option<rename::RenamePrompt>,
     /// Start of the shimmer cycle.
     epoch: Instant,
     /// Last state written to disk.
@@ -196,6 +200,7 @@ impl Server {
             mouse: Default::default(),
             overlay: None,
             menu: None,
+            rename: None,
             epoch: Instant::now(),
             saved: None,
         }
@@ -501,6 +506,7 @@ impl Server {
                 detect: Default::default(),
                 slide: None,
                 pending_input: None,
+                name: None,
             },
         );
         self.model.add(at, id, popup || floating);

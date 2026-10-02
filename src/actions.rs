@@ -15,6 +15,7 @@ pub enum Action {
     WindowToggleFloat,
     WindowSetTiling,
     WindowClose,
+    WindowRename,
     WindowMoveWorkspace {
         workspace: usize,
         follow: bool,
@@ -65,6 +66,7 @@ impl Action {
             ["window", "toggle-float"] => Action::WindowToggleFloat,
             ["window", "set-tiling"] => Action::WindowSetTiling,
             ["window", "close"] => Action::WindowClose,
+            ["window", "rename"] => Action::WindowRename,
             ["window", "move-workspace", n] => Action::WindowMoveWorkspace {
                 workspace: workspace(n)?,
                 follow: false,
@@ -112,6 +114,7 @@ impl Action {
             Action::WindowToggleFloat => "Float / tile".into(),
             Action::WindowSetTiling => "Tile".into(),
             Action::WindowClose => "Close window".into(),
+            Action::WindowRename => "Rename window".into(),
             Action::WindowMoveWorkspace { workspace, follow } => format!(
                 "Move to workspace {workspace}{}",
                 if *follow { " and follow" } else { "" }

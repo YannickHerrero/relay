@@ -30,6 +30,7 @@ pub const DEFAULTS: &[(&str, &str)] = &[
     ("Leader Enter", "spawn terminal"),
     ("Leader Space", "palette toggle"),
     ("Leader q", "window close"),
+    ("Leader ,", "window rename"),
     ("Leader f", "window toggle-fullscreen"),
     ("Leader t", "window toggle-float"),
     ("Leader h", "window focus left"),

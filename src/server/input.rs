@@ -30,6 +30,10 @@ impl Server {
     }
 
     fn on_key(&mut self, key: KeyEvent) {
+        if self.menu.is_some() {
+            self.on_menu_key(key);
+            return;
+        }
         if self.overlay.is_some() {
             self.on_overlay_key(key);
             return;

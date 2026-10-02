@@ -97,6 +97,10 @@ impl Server {
 
     pub(super) fn on_mouse(&mut self, event: MouseEvent) {
         self.mouse.pointer = (event.column, event.row);
+        if self.menu.is_some() {
+            self.on_menu_mouse(event);
+            return;
+        }
         if self.overlay.is_some() {
             self.on_overlay_mouse(event);
             return;
@@ -164,6 +168,16 @@ impl Server {
 
     fn on_press(&mut self, event: MouseEvent, button: MouseButton, hit: Hit) {
         match hit {
+            Hit::Bar(Some(item)) if button == MouseButton::Right => {
+                self.bar_menu(item, event.column)
+            }
+            Hit::Content { window, .. } | Hit::Border { window }
+                if button == MouseButton::Right
+                    && !(matches!(hit, Hit::Content { .. })
+                        && self.app_wants_mouse(window, event.modifiers)) =>
+            {
+                self.window_menu(window, event.column, event.row);
+            }
             Hit::Bar(Some(BarItem::Space)) if button == MouseButton::Left => {
                 self.open_list(super::overlay::ListKind::Spaces);
             }
@@ -192,6 +206,15 @@ impl Server {
             Hit::Border { window } => self.focus(window),
             _ => {}
         }
+    }
+
+    /// The program in the window asked for mouse reports and Shift, which
+    /// overrides that, is not held.
+    fn app_wants_mouse(&self, id: WindowId, mods: KeyModifiers) -> bool {
+        self.windows
+            .get(&id)
+            .is_some_and(|w| w.pane.term.mode().intersects(TermMode::MOUSE_MODE))
+            && !mods.contains(KeyModifiers::SHIFT)
     }
 
     /// Sends a mouse event to the program in `id`, relative to its terminal.

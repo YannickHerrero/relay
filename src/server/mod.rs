@@ -6,6 +6,7 @@ mod agents;
 mod bar;
 mod chrome;
 mod input;
+mod menu;
 mod mouse;
 mod overlay;
 mod palette;
@@ -89,6 +90,7 @@ pub struct Server {
     leader: Option<input::Leader>,
     mouse: mouse::MouseState,
     overlay: Option<overlay::ListOverlay>,
+    menu: Option<menu::Menu>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -177,6 +179,7 @@ impl Server {
             leader: None,
             mouse: Default::default(),
             overlay: None,
+            menu: None,
         }
     }
 

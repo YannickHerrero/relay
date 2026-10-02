@@ -48,5 +48,9 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         server.draw_leader(area, &mut buf);
         cursor = None;
     }
+    if server.menu.is_some() {
+        server.draw_menu(&mut buf);
+        cursor = None;
+    }
     (buf, cursor)
 }

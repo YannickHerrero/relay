@@ -6,7 +6,8 @@ use ratatui::style::Style;
 use ratatui::widgets::{Clear, Widget};
 use unicode_width::UnicodeWidthStr;
 
-use super::{Server, chrome, inner, motion};
+use super::mouse::Ghost;
+use super::{Server, Window, chrome, inner, motion};
 use crate::actions::Action;
 use crate::detect::tracker::Status;
 use crate::ui::output::Cursor;
@@ -31,17 +32,12 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
     let mut order = order;
     if let Some((dragged, _)) = ghost {
         order.retain(|id| *id != dragged);
-        order.push(dragged);
     }
     for id in order {
         let Some(window) = server.windows.get(&id) else {
             continue;
         };
-        let rect = match ghost {
-            Some((dragged, rect)) if dragged == id => rect,
-            _ => motion::displayed(window.rect, window.slide, now),
-        }
-        .intersection(area);
+        let rect = motion::displayed(window.rect, window.slide, now).intersection(area);
         if rect.width < 2 || rect.height < 2 {
             continue;
         }
@@ -71,6 +67,12 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
     }
     if server.resize_mode {
         server.draw_resize_hint(area, &mut buf);
+    }
+
+    if let Some((id, ghost)) = ghost
+        && let Some(window) = server.windows.get(&id)
+    {
+        draw_ghost(window, ghost, server.work_area(), &mut buf);
     }
 
     let layers = [
@@ -122,4 +124,26 @@ fn draw_empty_hint(server: &Server, area: Rect, buf: &mut Buffer) {
     let x = area.x + (area.width - width) / 2;
     let y = area.y + area.height / 2;
     buf.set_string(x, y, text, Style::new().fg(theme::OVERLAY0));
+}
+
+/// Draws a dragged window off screen at its own size, then copies the part
+/// that falls inside `area`, so it can hang over the edges.
+fn draw_ghost(window: &Window, ghost: Ghost, area: Rect, buf: &mut Buffer) {
+    let local = Rect::new(0, 0, ghost.width, ghost.height);
+    let mut scratch = Buffer::empty(local);
+    chrome::draw(window, local, true, false, false, None, &mut scratch);
+    terminal::draw(&window.pane.term, inner(local), &mut scratch);
+    for y in 0..ghost.height {
+        for x in 0..ghost.width {
+            let (tx, ty) = (ghost.x + x as i32, ghost.y + y as i32);
+            if tx < area.x as i32
+                || ty < area.y as i32
+                || tx >= area.right() as i32
+                || ty >= area.bottom() as i32
+            {
+                continue;
+            }
+            buf[(tx as u16, ty as u16)] = scratch[(x, y)].clone();
+        }
+    }
 }

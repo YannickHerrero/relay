@@ -141,7 +141,8 @@ impl Server {
                     grab,
                     origin,
                 }) if !self.model.is_floating(window) => {
-                    let ghost = self.ghost_rect(grab, origin, (event.column, event.row));
+                    let ghost = Ghost::follow(grab, origin, (event.column, event.row))
+                        .clamped(self.work_area());
                     if let Some(target) = self.swap_target(window, event.column, event.row) {
                         self.model.swap(window, target);
                         self.relayout();
@@ -449,31 +450,15 @@ impl Server {
         })
     }
 
-    /// Where a tiled window dragged by its title is drawn: its own size,
-    /// following the pointer, kept inside the work area.
-    pub(super) fn ghost_rect(&self, grab: (u16, u16), origin: Rect, pointer: (u16, u16)) -> Rect {
-        let area = self.work_area();
-        let dx = pointer.0 as i32 - grab.0 as i32;
-        let dy = pointer.1 as i32 - grab.1 as i32;
-        let max_x = area.right().saturating_sub(origin.width).max(area.x) as i32;
-        let max_y = area.bottom().saturating_sub(origin.height).max(area.y) as i32;
-        Rect::new(
-            (origin.x as i32 + dx).clamp(area.x as i32, max_x) as u16,
-            (origin.y as i32 + dy).clamp(area.y as i32, max_y) as u16,
-            origin.width,
-            origin.height,
-        )
-    }
-
     /// The tiled window being dragged and where it is drawn.
-    pub(super) fn drag_ghost(&self) -> Option<(WindowId, Rect)> {
+    pub(super) fn drag_ghost(&self) -> Option<(WindowId, Ghost)> {
         match self.mouse.drag {
             Some(Drag::Title {
                 window,
                 grab,
                 origin,
             }) if !self.model.is_floating(window) => {
-                Some((window, self.ghost_rect(grab, origin, self.mouse.pointer)))
+                Some((window, Ghost::follow(grab, origin, self.mouse.pointer)))
             }
             _ => None,
         }
@@ -488,6 +473,39 @@ impl Server {
             }
             _ => None,
         }
+    }
+}
+
+/// A tiled window dragged by its title: its own size, following the
+/// pointer, free to hang over the screen edges.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Ghost {
+    pub x: i32,
+    pub y: i32,
+    pub width: u16,
+    pub height: u16,
+}
+
+impl Ghost {
+    fn follow(grab: (u16, u16), origin: Rect, pointer: (u16, u16)) -> Ghost {
+        Ghost {
+            x: origin.x as i32 + pointer.0 as i32 - grab.0 as i32,
+            y: origin.y as i32 + pointer.1 as i32 - grab.1 as i32,
+            width: origin.width,
+            height: origin.height,
+        }
+    }
+
+    /// The nearest position fully inside `area`.
+    pub fn clamped(self, area: Rect) -> Rect {
+        let max_x = area.right().saturating_sub(self.width).max(area.x) as i32;
+        let max_y = area.bottom().saturating_sub(self.height).max(area.y) as i32;
+        Rect::new(
+            self.x.clamp(area.x as i32, max_x) as u16,
+            self.y.clamp(area.y as i32, max_y) as u16,
+            self.width,
+            self.height,
+        )
     }
 }
 

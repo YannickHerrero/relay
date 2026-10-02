@@ -69,7 +69,13 @@ pub fn read_json<T: DeserializeOwned>(r: &mut impl Read) -> io::Result<T> {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Hello {
-    Attach { cols: u16, rows: u16 },
+    Attach {
+        cols: u16,
+        rows: u16,
+        /// Where the first window opens when the server has none.
+        #[serde(default)]
+        cwd: Option<String>,
+    },
     Api(Request),
 }
 
@@ -140,12 +146,24 @@ mod tests {
     #[test]
     fn frames_round_trip() {
         let mut buf = Vec::new();
-        write_json(&mut buf, &Hello::Attach { cols: 80, rows: 24 }).unwrap();
+        write_json(
+            &mut buf,
+            &Hello::Attach {
+                cols: 80,
+                rows: 24,
+                cwd: None,
+            },
+        )
+        .unwrap();
         write_bytes(&mut buf, b"\x1b[H").unwrap();
         let mut r = buf.as_slice();
         assert!(matches!(
             read_json(&mut r).unwrap(),
-            Hello::Attach { cols: 80, rows: 24 }
+            Hello::Attach {
+                cols: 80,
+                rows: 24,
+                ..
+            }
         ));
         assert!(matches!(read_frame(&mut r).unwrap(), Frame::Bytes(b) if b == b"\x1b[H"));
     }

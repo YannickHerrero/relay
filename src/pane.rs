@@ -41,7 +41,7 @@ const SCRUBBED_ENV: &[&str] = &[
 ];
 
 #[derive(Clone, Default)]
-struct Listener(Arc<Mutex<Vec<TermEvent>>>);
+pub struct Listener(Arc<Mutex<Vec<TermEvent>>>);
 
 impl EventListener for Listener {
     fn send_event(&self, event: TermEvent) {

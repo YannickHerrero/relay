@@ -59,7 +59,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 ## Mouse
 
 - Click a window to focus it, a workspace in the bar to show it, the space name to pick a space.
-- Drag a title bar onto another window to swap them; drag a floating window by its title to move it, by its border to resize it.
+- Drag a title bar: the window follows the pointer and swaps with the window it is dropped on; drag a floating window by its title to move it, by its border to resize it.
 - Drag the border between two tiled windows to move the split.
 - The three dots in a title bar float, zoom and close the window.
 - Right-click a window (new terminal, fullscreen, float, rename, move, close) or a workspace for a menu.

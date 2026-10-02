@@ -9,7 +9,7 @@ use ratatui::layout::{Position, Rect};
 
 use super::bar::BarItem;
 use super::chrome::{self, Button};
-use super::{Server, inner};
+use super::{Server, inner, motion};
 use crate::actions::Action;
 use crate::encode;
 use crate::layout::{self, Axis};
@@ -136,12 +136,27 @@ impl Server {
             MouseEventKind::Up(_) => match self.mouse.drag.take() {
                 Some(Drag::Forward(window)) => self.forward_mouse(window, event),
                 Some(Drag::Select(window)) => self.finish_selection(window),
-                Some(Drag::Title { window, .. }) => {
+                Some(Drag::Title {
+                    window,
+                    grab,
+                    origin,
+                }) if !self.model.is_floating(window) => {
+                    let ghost = self.ghost_rect(grab, origin, (event.column, event.row));
                     if let Some(target) = self.swap_target(window, event.column, event.row) {
                         self.model.swap(window, target);
                         self.relayout();
                     }
+                    // Glide from where it was dropped to its slot.
+                    if self.slides()
+                        && let Some(w) = self.windows.get_mut(&window)
+                    {
+                        w.slide = Some(motion::Slide {
+                            from: ghost,
+                            start: Instant::now(),
+                        });
+                    }
                 }
+                Some(Drag::Title { .. }) => {}
                 Some(Drag::Split(_) | Drag::Resize(_)) | None => {}
             },
             _ => {}
@@ -425,6 +440,36 @@ impl Server {
         ws.tiled.iter().copied().find(|id| {
             *id != dragged && self.windows.get(id).is_some_and(|w| w.rect.contains(point))
         })
+    }
+
+    /// Where a tiled window dragged by its title is drawn: its own size,
+    /// following the pointer, kept inside the work area.
+    pub(super) fn ghost_rect(&self, grab: (u16, u16), origin: Rect, pointer: (u16, u16)) -> Rect {
+        let area = self.work_area();
+        let dx = pointer.0 as i32 - grab.0 as i32;
+        let dy = pointer.1 as i32 - grab.1 as i32;
+        let max_x = area.right().saturating_sub(origin.width).max(area.x) as i32;
+        let max_y = area.bottom().saturating_sub(origin.height).max(area.y) as i32;
+        Rect::new(
+            (origin.x as i32 + dx).clamp(area.x as i32, max_x) as u16,
+            (origin.y as i32 + dy).clamp(area.y as i32, max_y) as u16,
+            origin.width,
+            origin.height,
+        )
+    }
+
+    /// The tiled window being dragged and where it is drawn.
+    pub(super) fn drag_ghost(&self) -> Option<(WindowId, Rect)> {
+        match self.mouse.drag {
+            Some(Drag::Title {
+                window,
+                grab,
+                origin,
+            }) if !self.model.is_floating(window) => {
+                Some((window, self.ghost_rect(grab, origin, self.mouse.pointer)))
+            }
+            _ => None,
+        }
     }
 
     /// Window highlighted as the drop target of a title drag.

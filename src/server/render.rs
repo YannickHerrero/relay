@@ -27,11 +27,21 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
     if order.is_empty() {
         draw_empty_hint(server, area, &mut buf);
     }
+    let ghost = server.drag_ghost();
+    let mut order = order;
+    if let Some((dragged, _)) = ghost {
+        order.retain(|id| *id != dragged);
+        order.push(dragged);
+    }
     for id in order {
         let Some(window) = server.windows.get(&id) else {
             continue;
         };
-        let rect = motion::displayed(window.rect, window.slide, now).intersection(area);
+        let rect = match ghost {
+            Some((dragged, rect)) if dragged == id => rect,
+            _ => motion::displayed(window.rect, window.slide, now),
+        }
+        .intersection(area);
         if rect.width < 2 || rect.height < 2 {
             continue;
         }

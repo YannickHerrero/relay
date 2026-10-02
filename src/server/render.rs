@@ -44,6 +44,7 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
             rect,
             is_focused,
             target == Some(id),
+            server.mouse.hover_buttons == Some(id),
             shimmer,
             &mut buf,
         );

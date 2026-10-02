@@ -19,10 +19,11 @@ pub enum Button {
     Close,
 }
 
-const BUTTONS: [(Button, ratatui::style::Color); 3] = [
-    (Button::Float, theme::YELLOW),
-    (Button::Zoom, theme::GREEN),
-    (Button::Close, theme::RED),
+/// Each button is a colored dot that shows its symbol while hovered.
+const BUTTONS: [(Button, ratatui::style::Color, &str); 3] = [
+    (Button::Float, theme::YELLOW, "^"),
+    (Button::Zoom, theme::GREEN, "+"),
+    (Button::Close, theme::RED, "×"),
 ];
 /// Narrower windows show no buttons.
 const BUTTONS_MIN_WIDTH: u16 = 24;
@@ -44,7 +45,7 @@ pub fn button_at(rect: Rect, x: u16, y: u16) -> Option<Button> {
             let dot = bx + 1 + 2 * *i as u16;
             x == dot || x == dot + 1
         })
-        .map(|(_, (b, _))| *b)
+        .map(|(_, (b, _, _))| *b)
 }
 
 /// The title a window shows: its terminal title without a leading spinner,
@@ -73,6 +74,7 @@ pub fn draw(
     rect: Rect,
     focused: bool,
     highlight: bool,
+    hover: bool,
     shimmer: Option<f32>,
     buf: &mut Buffer,
 ) {
@@ -93,9 +95,17 @@ pub fn draw(
 
     let mut right_edge = rect.x + rect.width - 2;
     if let Some(bx) = buttons_x(rect) {
-        for (i, (_, color)) in BUTTONS.iter().enumerate() {
+        for (i, (_, color, symbol)) in BUTTONS.iter().enumerate() {
             let dot = bx + 1 + 2 * i as u16;
-            buf.set_string(dot, rect.y, "●", Style::new().fg(*color));
+            if hover {
+                let style = Style::new()
+                    .fg(theme::BASE)
+                    .bg(*color)
+                    .add_modifier(Modifier::BOLD);
+                buf.set_string(dot, rect.y, *symbol, style);
+            } else {
+                buf.set_string(dot, rect.y, "●", Style::new().fg(*color));
+            }
             buf.set_string(dot + 1, rect.y, " ", Style::new());
         }
         buf.set_string(bx, rect.y, " ", Style::new());

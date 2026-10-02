@@ -41,6 +41,8 @@ pub enum Drag {
 pub struct MouseState {
     pub drag: Option<Drag>,
     pub pointer: (u16, u16),
+    /// Window whose title-bar buttons are under the pointer.
+    pub hover_buttons: Option<WindowId>,
     last_click: Option<(Instant, u16, u16, u8)>,
 }
 
@@ -123,7 +125,13 @@ impl Server {
                 }
                 Some(Drag::Split(level)) => self.drag_split(level, event.column, event.row),
                 Some(Drag::Resize(window)) => self.resize_float(window, event.column, event.row),
-                None => {}
+                None => {
+                    self.mouse.hover_buttons =
+                        self.window_at(event.column, event.row).filter(|id| {
+                            chrome::button_at(self.windows[id].rect, event.column, event.row)
+                                .is_some()
+                        });
+                }
             },
             MouseEventKind::Up(_) => match self.mouse.drag.take() {
                 Some(Drag::Forward(window)) => self.forward_mouse(window, event),

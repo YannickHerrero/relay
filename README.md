@@ -47,7 +47,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | t | Float / tile |
 | h j k l | Focus |
 | H J K L | Swap with the neighbor |
-| r | Resize mode: h / l width, j / k height (or arrows), Escape to leave |
+| r | Resize mode: h j k l (or arrows) move the window's edge that way, so the key toward a neighbor grows it; Escape to leave |
 | 1…9 | Workspace |
 | s | Agents sidebar |
 | Tab | Recent workspace |

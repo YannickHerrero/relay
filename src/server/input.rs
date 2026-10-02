@@ -7,7 +7,7 @@ use super::Server;
 use crate::encode;
 use crate::keymap::{Entry, Node};
 use crate::keys::{Chord, Key};
-use crate::layout::Axis;
+use crate::layout::Direction;
 
 /// Keys typed after the leader, while its menu is open.
 #[derive(Debug, Clone)]
@@ -124,19 +124,17 @@ impl Server {
         }
     }
 
-    /// h and l shrink and grow the width, j and k grow and shrink the
-    /// height; arrows work too.
+    /// h j k l (or arrows) move the focused window's edge that way.
     fn on_resize_key(&mut self, key: KeyEvent, chord: Option<Chord>) {
-        const STEP: f32 = 0.05;
-        let step = match key.code {
-            KeyCode::Char('h') | KeyCode::Left => Some((Axis::Vertical, -STEP)),
-            KeyCode::Char('l') | KeyCode::Right => Some((Axis::Vertical, STEP)),
-            KeyCode::Char('j') | KeyCode::Down => Some((Axis::Horizontal, STEP)),
-            KeyCode::Char('k') | KeyCode::Up => Some((Axis::Horizontal, -STEP)),
+        let dir = match key.code {
+            KeyCode::Char('h') | KeyCode::Left => Some(Direction::Left),
+            KeyCode::Char('l') | KeyCode::Right => Some(Direction::Right),
+            KeyCode::Char('j') | KeyCode::Down => Some(Direction::Down),
+            KeyCode::Char('k') | KeyCode::Up => Some(Direction::Up),
             _ => None,
         };
-        if let Some((axis, delta)) = step {
-            self.resize_focused(axis, delta);
+        if let Some(dir) = dir {
+            self.nudge_focused(dir);
         } else if matches!(key.code, KeyCode::Esc | KeyCode::Enter)
             || chord == Some(self.keymap.leader)
         {

@@ -198,6 +198,32 @@ impl Server {
         self.relayout();
     }
 
+    /// Resize mode: moves the focused window's edge toward `dir`.
+    pub(super) fn nudge_focused(&mut self, dir: layout::Direction) {
+        const STEP: f32 = 0.05;
+        let Some(id) = self.model.focused() else {
+            return;
+        };
+        if self.model.is_floating(id) {
+            let (axis, delta) = match dir {
+                layout::Direction::Left => (Axis::Vertical, -STEP),
+                layout::Direction::Right => (Axis::Vertical, STEP),
+                layout::Direction::Up => (Axis::Horizontal, -STEP),
+                layout::Direction::Down => (Axis::Horizontal, STEP),
+            };
+            self.resize_focused(axis, delta);
+            return;
+        }
+        let area = self.work_area();
+        let ws = self.model.workspace_mut();
+        let Some(index) = ws.tiled.iter().position(|w| *w == id) else {
+            return;
+        };
+        let (rects, splits) = layout::fibonacci_with_splits(area, ws.tiled.len(), &ws.ratios);
+        layout::move_edge(&splits, &rects, &mut ws.ratios, index, dir, STEP);
+        self.relayout();
+    }
+
     fn toggle_float(&mut self, id: WindowId) {
         if self.windows.get(&id).is_some_and(|w| w.popup) {
             return;

@@ -201,12 +201,8 @@ impl Server {
 
 impl Server {
     pub(super) fn draw_resize_hint(&self, area: Rect, buf: &mut Buffer) {
-        let rows = [
-            ("h  l", "width −  +"),
-            ("j  k", "height +  −"),
-            ("esc", "done"),
-        ];
-        let width = 26.min(area.width);
+        let rows = [("h j k l", "move the edge"), ("esc", "done")];
+        let width = 28.min(area.width);
         let height = (rows.len() as u16 + 2).min(area.height);
         let rect = Rect::new(
             area.x + area.width.saturating_sub(width + 1),
@@ -222,10 +218,10 @@ impl Server {
             }
             buf.set_string(inner.x, y, format!(" {keys} "), panel::key_style());
             buf.set_stringn(
-                inner.x + 8,
+                inner.x + 10,
                 y,
                 label,
-                inner.width.saturating_sub(8) as usize,
+                inner.width.saturating_sub(10) as usize,
                 Style::new().fg(theme::TEXT),
             );
         }

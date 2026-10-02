@@ -203,6 +203,56 @@ pub fn resize(
     true
 }
 
+/// Moves one edge of window `index` by `step` toward `dir`: the edge on
+/// that side when it is a split boundary, else the opposite one. So the key
+/// pointing at a neighbor grows the window, the other shrinks it.
+pub fn move_edge(
+    splits: &[Split],
+    rects: &[Rect],
+    ratios: &mut Vec<f32>,
+    index: usize,
+    dir: Direction,
+    step: f32,
+) -> bool {
+    let Some(rect) = rects.get(index) else {
+        return false;
+    };
+    let (axis, toward_start) = match dir {
+        Direction::Left => (Axis::Vertical, true),
+        Direction::Right => (Axis::Vertical, false),
+        Direction::Up => (Axis::Horizontal, true),
+        Direction::Down => (Axis::Horizontal, false),
+    };
+    // A window's start edge is the cut of an earlier split whose second
+    // part it begins; its end edge is the cut of its own split.
+    let start_edge = || {
+        splits
+            .iter()
+            .filter(|s| s.axis == axis && s.level < index)
+            .filter(|s| match axis {
+                Axis::Vertical => s.second.x == rect.x,
+                Axis::Horizontal => s.second.y == rect.y,
+            })
+            .max_by_key(|s| s.level)
+    };
+    let end_edge = || splits.iter().find(|s| s.axis == axis && s.level == index);
+    let split = if toward_start {
+        start_edge().or_else(end_edge)
+    } else {
+        end_edge().or_else(start_edge)
+    };
+    let Some(split) = split else {
+        return false;
+    };
+    if ratios.len() <= split.level {
+        ratios.resize(split.level + 1, DEFAULT_RATIO);
+    }
+    let ratio = &mut ratios[split.level];
+    let delta = if toward_start { -step } else { step };
+    *ratio = (*ratio + delta).clamp(MIN_RATIO, MAX_RATIO);
+    true
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -284,6 +334,41 @@ mod tests {
         let (_, splits) = fibonacci_with_splits(AREA, 2, &[]);
         let mut ratios = vec![];
         assert!(!resize(&splits, &mut ratios, 0, Axis::Horizontal, 0.05));
+    }
+
+    fn nudge(count: usize, index: usize, dir: Direction) -> Vec<f32> {
+        let (rects, splits) = fibonacci_with_splits(AREA, count, &[]);
+        let mut ratios = vec![];
+        assert!(move_edge(&splits, &rects, &mut ratios, index, dir, 0.05));
+        ratios
+    }
+
+    #[test]
+    fn keys_toward_a_neighbor_grow_the_window() {
+        // Right window, h: its left edge moves left.
+        assert!((nudge(2, 1, Direction::Left)[0] - 0.45).abs() < 1e-6);
+        // Left window, l: its right edge moves right.
+        assert!((nudge(2, 0, Direction::Right)[0] - 0.55).abs() < 1e-6);
+    }
+
+    #[test]
+    fn keys_away_from_a_neighbor_shrink_the_window() {
+        assert!((nudge(2, 0, Direction::Left)[0] - 0.45).abs() < 1e-6);
+        assert!((nudge(2, 1, Direction::Right)[0] - 0.55).abs() < 1e-6);
+    }
+
+    #[test]
+    fn vertical_keys_pick_the_horizontal_cut() {
+        // Bottom right window, k: its top edge moves up.
+        assert!((nudge(3, 2, Direction::Up)[1] - 0.45).abs() < 1e-6);
+        assert!(!move_edge(
+            &[],
+            &[AREA],
+            &mut vec![],
+            0,
+            Direction::Up,
+            0.05
+        ));
     }
 
     #[test]

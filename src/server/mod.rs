@@ -205,6 +205,7 @@ impl Server {
         let mut last_detect = Instant::now();
         let mut animation_due: Option<Instant> = None;
         let mut last_save = Instant::now();
+        let mut seen_config = config_stamp();
         while !self.quit {
             let until_detect = agents::DETECT_INTERVAL.saturating_sub(last_detect.elapsed());
             let until_animation = animation_due
@@ -237,6 +238,11 @@ impl Server {
             if last_save.elapsed() >= session::SAVE_INTERVAL {
                 last_save = Instant::now();
                 self.save_state();
+                let stamp = config_stamp();
+                if stamp != seen_config {
+                    seen_config = stamp;
+                    self.reload_config();
+                }
             }
             if animation_due.is_some_and(|due| Instant::now() >= due) {
                 self.dirty = true;
@@ -541,6 +547,18 @@ impl Server {
         let bytes = client.output.encode(&frame, cursor);
         let _ = client.out.send(Out::Bytes(bytes));
     }
+}
+
+/// Modification times of the config files, to reload them when edited.
+fn config_stamp() -> Vec<Option<std::time::SystemTime>> {
+    ["config.toml", "keybindings.toml"]
+        .iter()
+        .map(|f| {
+            std::fs::metadata(config::config_dir().join(f))
+                .and_then(|m| m.modified())
+                .ok()
+        })
+        .collect()
 }
 
 fn load_keymap(config: &Config) -> Keymap {

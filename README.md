@@ -143,6 +143,55 @@ Both files reload when saved. Commands: `window focus|move left|right|up|down`, 
 
 The server keeps its socket, log and `state.json` in `~/.local/state/relay/`. Processes do not survive a server restart: windows come back as shells in their last directory, and agents with a known session are resumed (`claude --resume`, `pi --session`). Delete `state.json` to start from scratch.
 
+## Running as a service
+
+On a machine used as a server, start relay at login so agents keep running without anyone attached. `relay server` runs in the foreground and exits cleanly on `relay stop`; the services below restart it only after a crash. Clients find it through its socket as usual.
+
+macOS, `~/Library/LaunchAgents/dev.relay.server.plist` (launchd does not expand `~`, write full paths):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>dev.relay.server</string>
+  <key>ProgramArguments</key>
+  <array><string>/Users/you/.cargo/bin/relay</string><string>server</string></array>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>StandardOutPath</key><string>/Users/you/.local/state/relay/server.log</string>
+  <key>StandardErrorPath</key><string>/Users/you/.local/state/relay/server.log</string>
+</dict>
+</plist>
+```
+
+```sh
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.relay.server.plist
+```
+
+A LaunchAgent runs in the user's login session, so agents can read the keychain, where Claude Code keeps its login. A server started from an SSH session may not; on a headless Mac, enable automatic login and let launchd start it.
+
+Linux and WSL with systemd, `~/.config/systemd/user/relay.service`:
+
+```ini
+[Unit]
+Description=relay server
+
+[Service]
+ExecStart=%h/.cargo/bin/relay server
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+```
+
+```sh
+systemctl --user enable --now relay
+loginctl enable-linger $USER   # keep it running with no session open
+```
+
+WSL needs `systemd=true` under `[boot]` in `/etc/wsl.conf`.
+
 ## Credits
 
 - The terminal core, agent detection rules and integrations follow [herdr](https://github.com/herdrdev/herdr) (Apache-2.0). `src/detect/manifests/*.toml` are copied from it; `src/integration/relay-agent-state.ts` is adapted from its pi extension.

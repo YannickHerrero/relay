@@ -180,7 +180,7 @@ fn main() -> anyhow::Result<()> {
         } => {
             return print(send_request(
                 Request::Run {
-                    command: command.join(" "),
+                    command: shell_words(&command),
                     path: None,
                     space,
                     workspace,
@@ -272,6 +272,25 @@ fn main() -> anyhow::Result<()> {
         Cmd::Stop => Request::Stop,
     };
     print(send_request(request, false)?)
+}
+
+/// Arguments as one shell command line, quoted where the shell would split
+/// or expand them.
+fn shell_words(args: &[String]) -> String {
+    args.iter()
+        .map(|arg| {
+            let plain = !arg.is_empty()
+                && arg
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || "_@%+=:,./-~".contains(c));
+            if plain {
+                arg.clone()
+            } else {
+                format!("'{}'", arg.replace('\'', "'\\''"))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ")
 }
 
 fn own_window(window: Option<String>) -> anyhow::Result<String> {
@@ -372,4 +391,16 @@ fn connect_or_start() -> anyhow::Result<UnixStream> {
         "the server did not start, see {}",
         state.join("server.log").display()
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_keeps_arguments_whole() {
+        let args = ["sh", "-c", "echo a; echo it's"].map(String::from);
+        assert_eq!(shell_words(&args), r#"sh -c 'echo a; echo it'\''s'"#);
+        assert_eq!(shell_words(&["ls".into(), "~/dev".into()]), "ls ~/dev");
+    }
 }

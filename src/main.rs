@@ -19,6 +19,8 @@ use std::time::{Duration, Instant};
 
 use clap::{Parser, Subcommand};
 
+use protocol::{Hello, Request, Response};
+
 #[derive(Parser)]
 #[command(
     name = "relay",
@@ -36,19 +38,166 @@ enum Cmd {
     Attach,
     /// Run the server in the foreground.
     Server,
+    /// Show the server status.
+    Status,
+    /// List spaces.
+    Spaces,
+    /// List windows with their agent state.
+    Windows,
+    /// Focus the space of a project directory, creating it if needed.
+    Open {
+        path: String,
+        /// Space name; defaults to the directory name.
+        #[arg(long)]
+        name: Option<String>,
+    },
+    /// Run a command in a new window.
+    Run {
+        #[arg(long)]
+        space: Option<String>,
+        /// Workspace 1 to 9.
+        #[arg(long)]
+        workspace: Option<usize>,
+        #[arg(long)]
+        float: bool,
+        #[arg(required = true, trailing_var_arg = true)]
+        command: Vec<String>,
+    },
+    /// Type text into a window.
+    Send {
+        window: String,
+        text: String,
+        /// Press Enter after the text.
+        #[arg(long)]
+        enter: bool,
+    },
+    /// Report an agent session id for resuming after a restart.
+    ReportSession {
+        #[arg(long)]
+        agent: String,
+        #[arg(long)]
+        session: String,
+        /// Defaults to $RELAY_WINDOW_ID.
+        #[arg(long)]
+        window: Option<String>,
+    },
+    /// Report an agent's lifecycle state: working, blocked or idle.
+    ReportState {
+        #[arg(long)]
+        agent: String,
+        #[arg(long)]
+        state: String,
+        #[arg(long, default_value_t = 0)]
+        seq: u64,
+        /// Defaults to $RELAY_WINDOW_ID.
+        #[arg(long)]
+        window: Option<String>,
+    },
+    /// Reload config.toml and keybindings.toml.
+    Reload,
+    /// Stop the server and every window in it.
+    Stop,
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
-    match cli.command.unwrap_or(Cmd::Attach) {
+    let request = match cli.command.unwrap_or(Cmd::Attach) {
         Cmd::Attach => {
             if std::env::var_os("RELAY").is_some() {
                 anyhow::bail!("already inside relay");
             }
-            client::attach(connect_or_start()?)
+            return client::attach(connect_or_start()?);
         }
-        Cmd::Server => server::run(),
+        Cmd::Server => return server::run(),
+        Cmd::Status => Request::Status,
+        Cmd::Spaces => Request::ListSpaces,
+        Cmd::Windows => Request::ListWindows,
+        Cmd::Open { path, name } => {
+            let path = std::fs::canonicalize(&path).unwrap_or_else(|_| path.into());
+            return print(send_request(
+                Request::OpenSpace {
+                    path: path.display().to_string(),
+                    name,
+                },
+                true,
+            )?);
+        }
+        Cmd::Run {
+            space,
+            workspace,
+            float,
+            command,
+        } => {
+            return print(send_request(
+                Request::Run {
+                    command: command.join(" "),
+                    space,
+                    workspace,
+                    float,
+                },
+                true,
+            )?);
+        }
+        Cmd::Send {
+            window,
+            text,
+            enter,
+        } => Request::SendText {
+            window,
+            text: if enter { format!("{text}\r") } else { text },
+        },
+        Cmd::ReportSession {
+            agent,
+            session,
+            window,
+        } => Request::ReportSession {
+            window: own_window(window)?,
+            agent,
+            session,
+        },
+        Cmd::ReportState {
+            agent,
+            state,
+            seq,
+            window,
+        } => Request::ReportState {
+            window: own_window(window)?,
+            agent,
+            state,
+            seq,
+        },
+        Cmd::Reload => Request::ReloadConfig,
+        Cmd::Stop => Request::Stop,
+    };
+    print(send_request(request, false)?)
+}
+
+fn own_window(window: Option<String>) -> anyhow::Result<String> {
+    window
+        .or_else(|| std::env::var("RELAY_WINDOW_ID").ok())
+        .ok_or_else(|| anyhow::anyhow!("not inside a relay window; pass --window"))
+}
+
+/// Sends one API request; `start` launches the server when none runs.
+fn send_request(request: Request, start: bool) -> anyhow::Result<serde_json::Value> {
+    let mut stream = if start {
+        connect_or_start()?
+    } else {
+        UnixStream::connect(config::socket_path())
+            .map_err(|_| anyhow::anyhow!("relay server is not running"))?
+    };
+    protocol::write_json(&mut stream, &Hello::Api(request))?;
+    match protocol::read_json(&mut stream)? {
+        Response::Ok(value) => Ok(value),
+        Response::Error(e) => anyhow::bail!(e),
     }
+}
+
+fn print(value: serde_json::Value) -> anyhow::Result<()> {
+    if !value.is_null() {
+        println!("{}", serde_json::to_string_pretty(&value)?);
+    }
+    Ok(())
 }
 
 /// Connects to the server, starting it in the background first if needed.

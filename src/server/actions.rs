@@ -211,7 +211,7 @@ impl Server {
             cwd,
             env: vec![],
         };
-        if let Some(id) = self.spawn_window(at, spawn, true)
+        if let Some(id) = self.spawn_window(at, spawn, true, true)
             && let Some(window) = self.windows.get_mut(&id)
         {
             let (w, h) = (area.width * 4 / 5, area.height * 7 / 10);

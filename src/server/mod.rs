@@ -3,6 +3,7 @@
 
 mod actions;
 mod agents;
+mod api;
 mod bar;
 mod chrome;
 mod input;
@@ -273,8 +274,13 @@ impl Server {
                     self.client = None;
                 }
             }
-            Event::Api(_, reply) => {
-                let _ = reply.send(Response::Error("not implemented".into()));
+            Event::Api(request, reply) => {
+                let response = match self.api(request) {
+                    Ok(value) => Response::Ok(value),
+                    Err(e) => Response::Error(e.to_string()),
+                };
+                let _ = reply.send(response);
+                self.dirty = true;
             }
         }
     }
@@ -407,17 +413,23 @@ impl Server {
     /// Opens a shell in a new tiled window of the current workspace, typing
     /// `command` into it when given.
     fn spawn_shell(&mut self, cwd: PathBuf, command: Option<&str>) -> Option<WindowId> {
-        let at = self.here();
-        let id = self.spawn_window(
-            at,
-            Spawn {
-                program: self.config.shell(),
-                args: vec![],
-                cwd,
-                env: vec![],
-            },
-            false,
-        )?;
+        self.spawn_shell_at(self.here(), cwd, command, false)
+    }
+
+    fn spawn_shell_at(
+        &mut self,
+        at: Location,
+        cwd: PathBuf,
+        command: Option<&str>,
+        floating: bool,
+    ) -> Option<WindowId> {
+        let spawn = Spawn {
+            program: self.config.shell(),
+            args: vec![],
+            cwd,
+            env: vec![],
+        };
+        let id = self.spawn_window(at, spawn, false, floating)?;
         if let Some(command) = command {
             let window = &self.windows[&id];
             window.pane.write(format!("{command}\r"));
@@ -425,7 +437,13 @@ impl Server {
         Some(id)
     }
 
-    fn spawn_window(&mut self, at: Location, mut spawn: Spawn, popup: bool) -> Option<WindowId> {
+    fn spawn_window(
+        &mut self,
+        at: Location,
+        mut spawn: Spawn,
+        popup: bool,
+        floating: bool,
+    ) -> Option<WindowId> {
         let id = self.next_window;
         self.next_window += 1;
         spawn.env.extend(self.pane_env(id));
@@ -458,7 +476,7 @@ impl Server {
                 slide: None,
             },
         );
-        self.model.add(at, id, popup);
+        self.model.add(at, id, popup || floating);
         self.relayout();
         if self.slides()
             && let Some(window) = self.windows.get_mut(&id)

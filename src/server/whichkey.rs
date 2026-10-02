@@ -7,8 +7,10 @@ use unicode_width::UnicodeWidthStr;
 
 use super::Server;
 use super::input::node_at;
+use crate::actions::Action;
 use crate::keymap::{Entry, Node};
 use crate::keys::Chord;
+use crate::layout::Direction;
 use crate::ui::{panel, theme};
 
 struct Row {
@@ -19,8 +21,44 @@ struct Row {
 
 /// Rows for one menu level; runs of 1-9 that only differ by their number
 /// fold into one `1…9` row.
+/// Directional actions fold into one row when all four directions are
+/// bound at the same level: `h j k l  Focus`.
+fn direction_family(entry: &Entry) -> Option<(&'static str, usize)> {
+    let index = |d: &Direction| match d {
+        Direction::Left => 0,
+        Direction::Down => 1,
+        Direction::Up => 2,
+        Direction::Right => 3,
+    };
+    match entry {
+        Entry::Action(Action::WindowFocus(d)) => Some(("Focus", index(d))),
+        Entry::Action(Action::WindowMove(d)) => Some(("Swap", index(d))),
+        _ => None,
+    }
+}
+
+fn folded_families(node: &Node) -> Vec<(&'static str, [Option<Chord>; 4])> {
+    let mut families: Vec<(&'static str, [Option<Chord>; 4])> = Vec::new();
+    for (chord, entry) in &node.entries {
+        if let Some((label, dir)) = direction_family(entry) {
+            match families.iter_mut().find(|(l, _)| *l == label) {
+                Some((_, keys)) => keys[dir] = Some(*chord),
+                None => {
+                    let mut keys = [None; 4];
+                    keys[dir] = Some(*chord);
+                    families.push((label, keys));
+                }
+            }
+        }
+    }
+    families.retain(|(_, keys)| keys.iter().all(Option::is_some));
+    families
+}
+
 fn rows(node: &Node) -> Vec<Row> {
     let mut rows: Vec<Row> = Vec::new();
+    let families = folded_families(node);
+    let mut shown_families: Vec<&str> = Vec::new();
     let mut digits: Vec<(usize, String)> = Vec::new();
     let flush = |rows: &mut Vec<Row>, digits: &mut Vec<(usize, String)>| {
         if digits.len() >= 3 {
@@ -58,6 +96,24 @@ fn rows(node: &Node) -> Vec<Row> {
             continue;
         }
         flush(&mut rows, &mut digits);
+        if let Some((family, _)) = direction_family(entry)
+            && let Some((_, keys)) = families.iter().find(|(l, _)| *l == family)
+        {
+            if !shown_families.contains(&family) {
+                shown_families.push(family);
+                rows.push(Row {
+                    key: keys
+                        .iter()
+                        .flatten()
+                        .map(Chord::to_string)
+                        .collect::<Vec<_>>()
+                        .join(" "),
+                    label: family.to_owned(),
+                    group: false,
+                });
+            }
+            continue;
+        }
         rows.push(Row {
             key: chord.to_string(),
             label,
@@ -190,6 +246,12 @@ mod tests {
         let folded = rows.iter().find(|r| r.key == "1…9").expect("folded row");
         assert_eq!(folded.label, "Workspace N");
         assert!(rows.iter().any(|r| r.key == "m" && r.group));
+        assert!(
+            rows.iter()
+                .any(|r| r.key == "h j k l" && r.label == "Focus")
+        );
+        assert!(rows.iter().any(|r| r.key == "H J K L" && r.label == "Swap"));
+        assert!(!rows.iter().any(|r| r.key == "h"));
         assert!(rows.len() < 30);
     }
 }

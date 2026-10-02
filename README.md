@@ -31,7 +31,7 @@ The main modifier `Mod` is `Ctrl` by default (`modifier = "alt"` or `"meta"` in 
 |---|---|
 | Mod+H/J/K/L | Focus left, down, up, right |
 | Mod+1…9 | Workspace 1 to 9 |
-| Mod+P | Palette |
+| Mod+Space | Palette (also Ctrl+B Space) |
 
 Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at each step. It stays open until a key is chosen: Escape cancels, Backspace goes back to the root, `Ctrl+B Ctrl+B` sends `Ctrl+B` to the window. Resize keys keep it open so they can repeat.
 
@@ -67,7 +67,7 @@ Programs that ask for the mouse (lazygit, vim) get it; hold Shift to select or o
 
 ## Palette
 
-`Mod+P` searches windows of every space, spaces, project directories, programs and actions. Choosing a project focuses its space, or creates it with a terminal there. `@w`, `@b`, `@d`, `@i` and `@a` keep only windows whose agent is working, blocked, done, idle, or needs attention.
+`Mod+Space` searches windows of every space, spaces, project directories, programs and actions. Choosing a project focuses its space, or creates it with a terminal there. `@w`, `@b`, `@d`, `@i` and `@a` keep only windows whose agent is working, blocked, done, idle, or needs attention.
 
 ## Agents
 
@@ -121,7 +121,7 @@ lazygit = "lazygit"
 
 ```toml
 [keybindings]
-"Mod+P" = "palette toggle"
+"Mod+Space" = "palette toggle"
 "Leader g" = "popup lazygit"
 "Leader c" = "spawn claude"
 "Mod+Q" = ""

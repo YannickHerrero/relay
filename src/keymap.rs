@@ -21,8 +21,9 @@ pub const DEFAULTS: &[(&str, &str)] = &[
     ("Mod+7", "workspace 7"),
     ("Mod+8", "workspace 8"),
     ("Mod+9", "workspace 9"),
-    ("Mod+P", "palette toggle"),
+    ("Mod+Space", "palette toggle"),
     ("Leader Enter", "spawn terminal"),
+    ("Leader Space", "palette toggle"),
     ("Leader q", "window close"),
     ("Leader f", "window toggle-fullscreen"),
     ("Leader t", "window toggle-float"),
@@ -279,13 +280,13 @@ mod tests {
     #[test]
     fn user_entries_override_and_unbind() {
         let user = BTreeMap::from([
-            ("Mod+P".to_owned(), String::new()),
+            ("Mod+Space".to_owned(), String::new()),
             ("Leader g".to_owned(), "popup lazygit".to_owned()),
             ("Leader q".to_owned(), "server stop".to_owned()),
         ]);
         let (keymap, errors) = Keymap::build(&user, Modifier::Alt, chord("Ctrl+B"));
         assert!(errors.is_empty());
-        assert!(!keymap.direct.contains_key(&chord("Alt+P")));
+        assert!(!keymap.direct.contains_key(&chord("Alt+Space")));
         assert!(keymap.direct.contains_key(&chord("Alt+H")));
         assert!(matches!(
             keymap.tree.get(&chord("g")),

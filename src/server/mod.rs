@@ -1,6 +1,7 @@
 //! The server owns every terminal and the whole UI. Clients only forward
 //! their input and display the frames it sends.
 
+mod actions;
 mod input;
 mod render;
 
@@ -76,6 +77,7 @@ pub struct Server {
     dirty: bool,
     quit: bool,
     size: (u16, u16),
+    leader: Option<input::Leader>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -161,6 +163,7 @@ impl Server {
             dirty: true,
             quit: false,
             size: (80, 24),
+            leader: None,
         }
     }
 

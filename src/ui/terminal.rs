@@ -8,6 +8,7 @@ use crossterm::cursor::SetCursorStyle;
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Modifier};
+use unicode_width::UnicodeWidthStr;
 
 use super::output::Cursor;
 
@@ -96,10 +97,21 @@ pub fn draw<T: EventListener>(term: &Term<T>, area: Rect, buf: &mut Buffer) -> O
                 }
             }
         }
-        let mut symbol = String::new();
-        symbol.push(if cell.c == '\0' { ' ' } else { cell.c });
+        let base = if cell.c == '\0' { ' ' } else { cell.c };
+        let mut symbol = String::from(base);
         if let Some(zw) = cell.zerowidth() {
             symbol.extend(zw);
+            // A variation selector can make the frame think the cell is two
+            // columns wide while the emulator gave it one; the frame would
+            // then never redraw the next cell, leaving stale characters.
+            let cell_width = if cell.flags.contains(Flags::WIDE_CHAR) {
+                2
+            } else {
+                1
+            };
+            if symbol.width() != cell_width {
+                symbol = String::from(base);
+            }
         }
         target.set_symbol(&symbol);
         target.fg = fg;
@@ -160,6 +172,20 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 4, 1));
         draw(&term, Rect::new(0, 0, 10, 3), &mut buf);
         assert_eq!(buf[(3, 0)].symbol(), "d");
+    }
+
+    #[test]
+    fn cell_after_an_emoji_variation_selector_is_redrawn() {
+        let mut term = term("\u{2733}\u{FE0F}a".as_bytes());
+        let mut output = crate::ui::output::Output::new();
+        let mut buf = Buffer::empty(Rect::new(0, 0, 10, 3));
+        draw(&term, buf.area, &mut buf);
+        output.encode(&buf, None);
+        ansi::Processor::<ansi::StdSyncHandler>::new().advance(&mut term, b"\r\x1b[1Cb");
+        let mut next = Buffer::empty(Rect::new(0, 0, 10, 3));
+        draw(&term, next.area, &mut next);
+        let out = String::from_utf8_lossy(&output.encode(&next, None)).into_owned();
+        assert!(out.contains('b'));
     }
 
     #[test]

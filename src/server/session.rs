@@ -6,7 +6,7 @@ use ratatui::layout::Rect;
 
 use super::Server;
 use crate::config;
-use crate::detect::process;
+use crate::detect::{Agent, process};
 use crate::model::{Location, Model, Space, WORKSPACES};
 use crate::persist::{self, SpaceState, State, WindowState, WorkspaceState};
 
@@ -114,11 +114,19 @@ impl Server {
                         space: s,
                         workspace: n,
                     };
-                    let id = self.spawn_shell_at(at, cwd, None, window.floating.is_some());
-                    if let (Some(id), Some([x, y, w, h])) = (id, window.floating)
-                        && let Some(w_) = self.windows.get_mut(&id)
-                    {
-                        w_.float_rect = Some(Rect::new(x, y, w, h));
+                    let resume = window
+                        .agent
+                        .zip(window.session.as_deref())
+                        .and_then(|(agent, session)| resume_command(agent, session));
+                    let id =
+                        self.spawn_shell_at(at, cwd, resume.as_deref(), window.floating.is_some());
+                    if let Some(w_) = id.and_then(|id| self.windows.get_mut(&id)) {
+                        if let Some([x, y, w, h]) = window.floating {
+                            w_.float_rect = Some(Rect::new(x, y, w, h));
+                        }
+                        if let (Some(_), Some(session)) = (&resume, &window.session) {
+                            w_.tracker.restore(session.clone());
+                        }
                     }
                     ids.push(id);
                 }
@@ -133,5 +141,54 @@ impl Server {
         }
         self.relayout();
         self.saved = Some(self.snapshot());
+    }
+}
+
+/// The command that brings an agent conversation back, typed into the
+/// restored window's shell so the shell remains when the agent exits.
+pub fn resume_command(agent: Agent, session: &str) -> Option<String> {
+    let valid =
+        !session.is_empty() && session.len() <= 4096 && !session.chars().any(char::is_control);
+    if !valid {
+        return None;
+    }
+    let args = match agent {
+        Agent::Claude => ["claude", "--resume", session],
+        Agent::Pi => ["pi", "--session", session],
+    };
+    Some(
+        args.iter()
+            .map(|a| shell_quote(a))
+            .collect::<Vec<_>>()
+            .join(" "),
+    )
+}
+
+fn shell_quote(arg: &str) -> String {
+    let bare = arg
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || "_-./:@%+=".contains(c));
+    if bare && !arg.is_empty() {
+        arg.to_owned()
+    } else {
+        format!("'{}'", arg.replace('\'', "'\\''"))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn resume_commands_are_quoted() {
+        assert_eq!(
+            resume_command(Agent::Claude, "4f2c-11").as_deref(),
+            Some("claude --resume 4f2c-11")
+        );
+        assert_eq!(
+            resume_command(Agent::Pi, "/home/u/my sessions/it's.jsonl").as_deref(),
+            Some("pi --session '/home/u/my sessions/it'\\''s.jsonl'")
+        );
+        assert_eq!(resume_command(Agent::Claude, "a\nb"), None);
     }
 }

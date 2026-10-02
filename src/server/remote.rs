@@ -292,6 +292,8 @@ impl Server {
             "name": self.machine_name(),
             "url": remote.url,
             "token": self.remote_token,
+            // The web app is the first origin allowed to connect.
+            "app": remote.origins.first(),
         }))
     }
 }

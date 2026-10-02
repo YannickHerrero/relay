@@ -317,7 +317,12 @@ fn send_request(request: Request, start: bool) -> anyhow::Result<serde_json::Val
 /// Prints the pairing as a QR code, then as text to type in by hand.
 fn show_pairing(pairing: &serde_json::Value) -> anyhow::Result<()> {
     use qrcode::render::unicode::Dense1x2;
-    let code = qrcode::QrCode::new(pairing.to_string())?;
+    let code = serde_json::json!({
+        "name": pairing["name"],
+        "url": pairing["url"],
+        "token": pairing["token"],
+    });
+    let code = qrcode::QrCode::new(code.to_string())?;
     // Light modules are drawn, so the code reads right on a dark terminal.
     let image = code
         .render::<Dense1x2>()
@@ -327,6 +332,10 @@ fn show_pairing(pairing: &serde_json::Value) -> anyhow::Result<()> {
     println!("{image}\n");
     for key in ["name", "url", "token"] {
         println!("{key:>6}  {}", pairing[key].as_str().unwrap_or_default());
+    }
+    if let Some(app) = pairing["app"].as_str() {
+        println!("\nNo app yet? Open {app} on the device, add it to the Home Screen,");
+        println!("then scan this code from Add machine.");
     }
     Ok(())
 }

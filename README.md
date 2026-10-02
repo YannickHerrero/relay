@@ -32,6 +32,7 @@ The main modifier `Mod` is `Ctrl` by default (`modifier = "alt"` or `"meta"` in 
 | Mod+H/J/K/L | Focus left, down, up, right |
 | Mod+1…9 | Workspace 1 to 9 |
 | Mod+Space | Palette (also Ctrl+B Space) |
+| Mod+Q | Close the window |
 
 Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at each step. It stays open until a key is chosen: Escape cancels, Backspace goes back to the root, `Ctrl+B Ctrl+B` sends `Ctrl+B` to the window. Resize keys keep it open so they can repeat.
 
@@ -124,7 +125,7 @@ lazygit = "lazygit"
 "Mod+Space" = "palette toggle"
 "Leader g" = "popup lazygit"
 "Leader c" = "spawn claude"
-"Mod+Q" = ""
+"Mod+G" = ""
 ```
 
 Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window move-workspace N [--follow]`, `workspace N`, `workspace next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `client detach`, `config reload`, `server stop`.

@@ -22,6 +22,7 @@ pub const DEFAULTS: &[(&str, &str)] = &[
     ("Mod+8", "workspace 8"),
     ("Mod+9", "workspace 9"),
     ("Mod+Space", "palette toggle"),
+    ("Mod+Q", "window close"),
     ("Leader Enter", "spawn terminal"),
     ("Leader Space", "palette toggle"),
     ("Leader q", "window close"),

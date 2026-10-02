@@ -26,7 +26,7 @@ relay est un multiplexeur de terminal pensé comme un tiling window manager, pou
 
 ### Modèle TWM
 
-- **Spaces** : un par projet. Création depuis la palette (sessionizer sur `~/dev` et `~/dev/peren`), qui donne le focus au space s'il existe déjà. Renommer, supprimer.
+- **Spaces** : un par projet. Création depuis la palette (sessionizer sur les dossiers configurés, `~/dev` par défaut), qui donne le focus au space s'il existe déjà. Renommer, supprimer.
 - **Workspaces 1…9** dans chaque space. Workspace occupé suivant, workspace récent, déplacer la fenêtre vers un workspace et la suivre. Chaque space retient son workspace actif et son workspace récent.
 - **Windows** en tiling fibonacci automatique, comme Illium : la première prend la moitié gauche, les suivantes partagent le reste en alternant horizontal et vertical. Pas de split manuel.
 - Focus géométrique (voisin le plus proche dans la direction), swap directionnel, resize par pas de 5 %, plein écran réversible, fermeture.

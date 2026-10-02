@@ -2,12 +2,15 @@ use std::time::Instant;
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
+use ratatui::style::Style;
 use ratatui::widgets::{Clear, Widget};
+use unicode_width::UnicodeWidthStr;
 
 use super::{Server, chrome, inner, motion};
+use crate::actions::Action;
 use crate::detect::tracker::Status;
 use crate::ui::output::Cursor;
-use crate::ui::terminal;
+use crate::ui::{terminal, theme};
 
 pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
     let now = Instant::now();
@@ -21,6 +24,9 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         Some(id) => vec![id],
         None => ws.windows().collect(),
     };
+    if order.is_empty() {
+        draw_empty_hint(server, area, &mut buf);
+    }
     for id in order {
         let Some(window) = server.windows.get(&id) else {
             continue;
@@ -69,4 +75,31 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         }
     }
     (buf, cursor)
+}
+
+/// Says how to open a window on an empty workspace.
+fn draw_empty_hint(server: &Server, area: Rect, buf: &mut Buffer) {
+    let key_for = |wanted: &Action| {
+        server
+            .keymap
+            .listing
+            .iter()
+            .find(|(_, action)| action == wanted)
+            .map(|(keys, _)| keys.clone())
+    };
+    let mut parts = Vec::new();
+    if let Some(keys) = key_for(&Action::Spawn("terminal".into())) {
+        parts.push(format!("{keys}  new terminal"));
+    }
+    if let Some(keys) = key_for(&Action::Palette) {
+        parts.push(format!("{keys}  palette"));
+    }
+    let text = parts.join("   ·   ");
+    let width = text.width() as u16;
+    if width == 0 || width > area.width {
+        return;
+    }
+    let x = area.x + (area.width - width) / 2;
+    let y = area.y + area.height / 2;
+    buf.set_string(x, y, text, Style::new().fg(theme::OVERLAY0));
 }

@@ -130,7 +130,7 @@ lazygit = "lazygit"
 "Mod+Space" = "palette toggle"
 "Leader g" = "popup lazygit"
 "Leader c" = "spawn claude"
-"Mod+G" = ""
+"Leader Shift+Tab" = ""
 ```
 
 Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `agents toggle`, `client detach`, `config reload`, `server stop`.

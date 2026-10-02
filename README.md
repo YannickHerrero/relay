@@ -220,7 +220,12 @@ systemctl --user enable --now relay
 loginctl enable-linger $USER   # keep it running with no session open
 ```
 
-WSL needs `systemd=true` under `[boot]` in `/etc/wsl.conf`.
+WSL needs `systemd=true` under `[boot]` in `/etc/wsl.conf`. It also stops the distribution once no Windows process uses it, systemd or not; to keep it up without a terminal, start a hidden `wsl.exe` at Windows logon with a `relay-wsl.vbs` in `shell:startup` (use your distribution's name):
+
+```vb
+Set shell = CreateObject("WScript.Shell")
+shell.Run "wsl.exe -d Debian --exec /bin/sleep infinity", 0, False
+```
 
 ## Credits
 

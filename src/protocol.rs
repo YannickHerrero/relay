@@ -77,6 +77,8 @@ pub enum Hello {
         cwd: Option<String>,
     },
     Api(Request),
+    /// Streams `Update`s until the connection closes.
+    Subscribe,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -90,6 +92,17 @@ pub enum ClientMsg {
 pub enum ServerMsg {
     /// The client must leave; `reason` is shown after the screen is restored.
     Exit { reason: String },
+}
+
+/// Pushed to subscribers: the whole state when they connect, then again
+/// whenever it changes.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "event", rename_all = "snake_case")]
+pub enum Update {
+    State {
+        spaces: Vec<serde_json::Value>,
+        windows: Vec<serde_json::Value>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -181,6 +194,18 @@ mod tests {
             hello,
             Hello::Api(Request::Run { float: false, .. })
         ));
+    }
+
+    #[test]
+    fn updates_use_an_event_tag() {
+        let update = Update::State {
+            spaces: vec![],
+            windows: vec![],
+        };
+        assert_eq!(
+            serde_json::to_string(&update).unwrap(),
+            r#"{"event":"state","spaces":[],"windows":[]}"#
+        );
     }
 
     #[test]

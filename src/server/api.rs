@@ -36,22 +36,7 @@ impl Server {
                 "spaces": self.model.spaces.len(),
                 "windows": self.windows.len(),
             })),
-            Request::ListSpaces => Ok(Value::Array(
-                self.model
-                    .spaces
-                    .iter()
-                    .enumerate()
-                    .map(|(i, s)| {
-                        json!({
-                            "name": s.name,
-                            "cwd": s.cwd,
-                            "active": i == self.model.active,
-                            "workspace": s.active + 1,
-                            "windows": s.windows().count(),
-                        })
-                    })
-                    .collect(),
-            )),
+            Request::ListSpaces => Ok(Value::Array(self.space_list())),
             Request::ListWindows => Ok(Value::Array(self.window_list())),
             Request::OpenSpace { path, name } => {
                 let path = config::expand_home(&path);
@@ -166,7 +151,24 @@ impl Server {
         }
     }
 
-    fn window_list(&self) -> Vec<Value> {
+    pub(super) fn space_list(&self) -> Vec<Value> {
+        self.model
+            .spaces
+            .iter()
+            .enumerate()
+            .map(|(i, s)| {
+                json!({
+                    "name": s.name,
+                    "cwd": s.cwd,
+                    "active": i == self.model.active,
+                    "workspace": s.active + 1,
+                    "windows": s.windows().count(),
+                })
+            })
+            .collect()
+    }
+
+    pub(super) fn window_list(&self) -> Vec<Value> {
         let mut list = Vec::new();
         for (s, space) in self.model.spaces.iter().enumerate() {
             for (n, ws) in space.workspaces.iter().enumerate() {

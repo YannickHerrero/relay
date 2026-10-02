@@ -18,6 +18,7 @@ mod render;
 mod session;
 mod sidebar;
 mod spaces;
+mod subscribe;
 mod toast;
 mod whichkey;
 
@@ -38,7 +39,7 @@ use crate::keymap::{KeybindingsFile, Keymap};
 use crate::layout;
 use crate::model::{Location, Model, Space, WindowId};
 use crate::pane::{Pane, PaneEvent, Spawn};
-use crate::protocol::{self, ClientMsg, Hello, Request, Response, ServerMsg};
+use crate::protocol::{self, ClientMsg, Hello, Request, Response, ServerMsg, Update};
 use crate::ui::output::Output;
 
 const FRAME: Duration = Duration::from_millis(8);
@@ -56,6 +57,7 @@ pub enum Event {
     Client(u64, ClientMsg),
     ClientGone(u64),
     Api(Request, Sender<Response>),
+    Subscribe(UnixStream),
 }
 
 pub struct Window {
@@ -121,6 +123,9 @@ pub struct Server {
     epoch: Instant,
     /// Last state written to disk.
     saved: Option<crate::persist::State>,
+    subscribers: Vec<Sender<Update>>,
+    /// Last state sent to subscribers.
+    published: Option<Update>,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -188,6 +193,9 @@ fn serve_connection(mut stream: UnixStream, tx: Sender<Event>) {
                 .unwrap_or_else(|_| Response::Error("server did not answer".into()));
             let _ = protocol::write_json(&mut stream, &response);
         }
+        Hello::Subscribe => {
+            let _ = tx.send(Event::Subscribe(stream));
+        }
     }
 }
 
@@ -220,6 +228,8 @@ impl Server {
             sidebar: SidebarState::default(),
             epoch: Instant::now(),
             saved: None,
+            subscribers: Vec::new(),
+            published: None,
         }
     }
 
@@ -253,6 +263,7 @@ impl Server {
             if last_detect.elapsed() >= agents::DETECT_INTERVAL {
                 last_detect = Instant::now();
                 self.detect_agents(last_detect);
+                self.publish();
             }
             let now_minute = chrono::Local::now().format("%H:%M").to_string();
             if now_minute != minute {
@@ -323,6 +334,7 @@ impl Server {
                     self.client = None;
                 }
             }
+            Event::Subscribe(stream) => self.subscribe(stream),
             Event::Api(request, reply) => {
                 let response = match self.api(request) {
                     Ok(value) => Response::Ok(value),

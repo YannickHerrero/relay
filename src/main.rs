@@ -101,6 +101,8 @@ enum Cmd {
         #[arg(long)]
         window: Option<String>,
     },
+    /// Print the state as a JSON line now and whenever it changes.
+    Events,
     /// Reload config.toml and keybindings.toml.
     Reload,
     /// Install an agent integration: claude or pi.
@@ -188,6 +190,7 @@ fn main() -> anyhow::Result<()> {
             state,
             seq,
         },
+        Cmd::Events => return follow_events(),
         Cmd::Reload => Request::ReloadConfig,
         Cmd::Integration {
             action: IntegrationCmd::Install { agent },
@@ -239,6 +242,22 @@ fn send_request(request: Request, start: bool) -> anyhow::Result<serde_json::Val
     match protocol::read_json(&mut stream)? {
         Response::Ok(value) => Ok(value),
         Response::Error(e) => anyhow::bail!(e),
+    }
+}
+
+fn follow_events() -> anyhow::Result<()> {
+    use std::io::Write;
+    let mut stream = UnixStream::connect(config::socket_path())
+        .map_err(|_| anyhow::anyhow!("relay server is not running"))?;
+    protocol::write_json(&mut stream, &Hello::Subscribe)?;
+    let mut out = std::io::stdout().lock();
+    loop {
+        let update: serde_json::Value = match protocol::read_json(&mut stream) {
+            Ok(update) => update,
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => return Ok(()),
+            Err(e) => return Err(e.into()),
+        };
+        writeln!(out, "{update}")?;
     }
 }
 

@@ -323,7 +323,14 @@ impl Server {
         };
         let term = &mut window.pane.term;
         match term.selection_to_string().filter(|t| !t.is_empty()) {
-            Some(text) => self.copy_to_clipboard(&text),
+            Some(text) => {
+                self.copy_to_clipboard(&text);
+                let count = text.chars().count();
+                self.toast(format!(
+                    "Copied {count} character{}",
+                    if count == 1 { "" } else { "s" }
+                ));
+            }
             None => term.selection = None,
         }
     }

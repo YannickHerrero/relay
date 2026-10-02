@@ -64,7 +64,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 - The three dots in a title bar float, zoom and close the window.
 - Right-click a window (new terminal, fullscreen, float, rename, move, close) or a workspace for a menu.
 - The wheel scrolls back through history; typing returns to the bottom.
-- Drag to select, double-click for a word, triple-click for a line. The selection is copied to the clipboard through OSC 52.
+- Drag to select, double-click for a word, triple-click for a line. The selection is copied to the clipboard through OSC 52 when the button is released, and a notification confirms it.
 
 Programs that ask for the mouse (lazygit, vim) get it; hold Shift to select or open the menu anyway.
 

@@ -16,6 +16,7 @@ mod rename;
 mod render;
 mod session;
 mod spaces;
+mod toast;
 mod whichkey;
 
 use std::collections::HashMap;
@@ -103,6 +104,7 @@ pub struct Server {
     overlay: Option<overlay::ListOverlay>,
     menu: Option<menu::Menu>,
     rename: Option<rename::RenamePrompt>,
+    toast: Option<toast::Toast>,
     /// Start of the shimmer cycle.
     epoch: Instant,
     /// Last state written to disk.
@@ -201,6 +203,7 @@ impl Server {
             overlay: None,
             menu: None,
             rename: None,
+            toast: None,
             epoch: Instant::now(),
             saved: None,
         }

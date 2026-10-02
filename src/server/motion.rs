@@ -123,7 +123,11 @@ impl Server {
                     .get(&id)
                     .is_some_and(|w| w.tracker.status() == Some(Status::Working))
             });
-        shimmering.then_some(SHIMMER_FRAME)
+        let shimmer = shimmering.then_some(SHIMMER_FRAME);
+        match (shimmer, self.toast_expiry(now)) {
+            (Some(a), Some(b)) => Some(a.min(b)),
+            (a, b) => a.or(b),
+        }
     }
 }
 

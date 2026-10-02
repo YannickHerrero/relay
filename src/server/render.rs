@@ -64,6 +64,7 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         }
     }
 
+    server.draw_toast(area, &mut buf, now);
     if server.rename.is_some() {
         server.draw_rename(area, &mut buf);
         cursor = None;

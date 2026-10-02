@@ -9,6 +9,8 @@ pub enum Action {
     WindowMove(Direction),
     /// Signed fraction of the split, `0.05` for `+5%`.
     WindowResize(Axis, f32),
+    /// Keys resize the focused window until Escape.
+    ResizeMode,
     WindowFullscreen,
     WindowToggleFloat,
     WindowSetTiling,
@@ -56,6 +58,7 @@ impl Action {
                 let percent: f32 = amount.strip_suffix('%')?.parse().ok()?;
                 Action::WindowResize(axis, percent / 100.0)
             }
+            ["window", "resize-mode"] => Action::ResizeMode,
             ["window", "toggle-fullscreen"] => Action::WindowFullscreen,
             ["window", "toggle-float"] => Action::WindowToggleFloat,
             ["window", "set-tiling"] => Action::WindowSetTiling,
@@ -100,6 +103,7 @@ impl Action {
                 if *delta >= 0.0 { "+" } else { "" },
                 delta * 100.0
             ),
+            Action::ResizeMode => "Resize mode".into(),
             Action::WindowFullscreen => "Fullscreen".into(),
             Action::WindowToggleFloat => "Float / tile".into(),
             Action::WindowSetTiling => "Tile".into(),

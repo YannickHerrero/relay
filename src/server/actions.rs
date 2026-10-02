@@ -25,6 +25,7 @@ impl Server {
                 }
             }
             Action::WindowResize(axis, delta) => self.resize_focused(axis, delta),
+            Action::ResizeMode => self.resize_mode = true,
             Action::WindowFullscreen => {
                 if let Some(id) = self.model.focused() {
                     let ws = self.model.workspace_mut();
@@ -140,7 +141,7 @@ impl Server {
         layout::neighbor(&rects, from, dir).map(|i| ids[i])
     }
 
-    fn resize_focused(&mut self, axis: Axis, delta: f32) {
+    pub(super) fn resize_focused(&mut self, axis: Axis, delta: f32) {
         let Some(id) = self.model.focused() else {
             return;
         };

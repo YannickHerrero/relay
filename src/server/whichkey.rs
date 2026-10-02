@@ -143,6 +143,39 @@ impl Server {
     }
 }
 
+impl Server {
+    pub(super) fn draw_resize_hint(&self, area: Rect, buf: &mut Buffer) {
+        let rows = [
+            ("j  ;", "width −  +"),
+            ("k  l", "height +  −"),
+            ("esc", "done"),
+        ];
+        let width = 26.min(area.width);
+        let height = (rows.len() as u16 + 2).min(area.height);
+        let rect = Rect::new(
+            area.x + area.width.saturating_sub(width + 1),
+            area.y + area.height.saturating_sub(height + 1),
+            width,
+            height,
+        );
+        let inner = panel::draw(rect, "Resize", "", buf);
+        for (i, (keys, label)) in rows.iter().enumerate() {
+            let y = inner.y + i as u16;
+            if y >= inner.bottom() {
+                break;
+            }
+            buf.set_string(inner.x, y, format!(" {keys} "), panel::key_style());
+            buf.set_stringn(
+                inner.x + 8,
+                y,
+                label,
+                inner.width.saturating_sub(8) as usize,
+                Style::new().fg(theme::TEXT),
+            );
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

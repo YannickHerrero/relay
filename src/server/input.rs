@@ -1,12 +1,13 @@
 use std::time::Instant;
 
 use alacritty_terminal::grid::Scroll;
-use crossterm::event::{Event, KeyEvent, KeyEventKind};
+use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
 
 use super::Server;
 use crate::encode;
 use crate::keymap::{Entry, Node};
 use crate::keys::{Chord, Key};
+use crate::layout::Axis;
 
 /// Keys typed after the leader, while its menu is open.
 #[derive(Debug, Clone)]
@@ -51,6 +52,10 @@ impl Server {
             return;
         }
         let chord = Chord::from_event(&key);
+        if self.resize_mode {
+            self.on_resize_key(key, chord);
+            return;
+        }
         if self.leader.is_some() {
             self.on_leader_key(key, chord);
             return;
@@ -112,6 +117,26 @@ impl Server {
             }
             // Unknown keys are swallowed and keep the menu open.
             None => {}
+        }
+    }
+
+    /// j and ; shrink and grow the width, k and l grow and shrink the
+    /// height, like i3's resize mode; arrows work too.
+    fn on_resize_key(&mut self, key: KeyEvent, chord: Option<Chord>) {
+        const STEP: f32 = 0.05;
+        let step = match key.code {
+            KeyCode::Char('j') | KeyCode::Left => Some((Axis::Vertical, -STEP)),
+            KeyCode::Char(';') | KeyCode::Right => Some((Axis::Vertical, STEP)),
+            KeyCode::Char('k') | KeyCode::Down => Some((Axis::Horizontal, STEP)),
+            KeyCode::Char('l') | KeyCode::Up => Some((Axis::Horizontal, -STEP)),
+            _ => None,
+        };
+        if let Some((axis, delta)) = step {
+            self.resize_focused(axis, delta);
+        } else if matches!(key.code, KeyCode::Esc | KeyCode::Enter)
+            || chord == Some(self.keymap.leader)
+        {
+            self.resize_mode = false;
         }
     }
 

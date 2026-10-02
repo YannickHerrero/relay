@@ -53,6 +53,10 @@ pub fn frame(server: &Server, area: Rect) -> (Buffer, Option<Cursor>) {
         }
     }
 
+    if server.resize_mode {
+        server.draw_resize_hint(area, &mut buf);
+    }
+
     let layers = [
         server.overlay.as_ref().map(|o| o.opened),
         server.leader.as_ref().map(|l| l.opened),

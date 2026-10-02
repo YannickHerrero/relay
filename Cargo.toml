@@ -5,8 +5,10 @@ edition = "2024"
 description = "Tiling terminal window manager for coding agents"
 
 [dependencies]
+alacritty_terminal = "0.26.0"
 anyhow = "1.0.104"
 crossterm = { version = "0.29.0", features = ["serde", "bracketed-paste", "events"] }
+portable-pty = "0.9.0"
 ratatui = "0.30.2"
 regex = "1.13.1"
 serde = { version = "1.0.229", features = ["derive"] }

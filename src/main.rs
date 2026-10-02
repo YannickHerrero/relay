@@ -4,5 +4,6 @@ mod detect;
 mod keymap;
 mod keys;
 mod layout;
+mod pane;
 
 fn main() {}

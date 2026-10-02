@@ -7,6 +7,7 @@ mod bar;
 mod chrome;
 mod input;
 mod menu;
+mod motion;
 mod mouse;
 mod overlay;
 mod palette;
@@ -61,6 +62,7 @@ pub struct Window {
     /// Where the layout puts the window.
     pub rect: Rect,
     pub detect: agents::DetectState,
+    pub slide: Option<motion::Slide>,
 }
 
 enum Out {
@@ -91,6 +93,8 @@ pub struct Server {
     mouse: mouse::MouseState,
     overlay: Option<overlay::ListOverlay>,
     menu: Option<menu::Menu>,
+    /// Start of the shimmer cycle.
+    epoch: Instant,
 }
 
 pub fn run() -> anyhow::Result<()> {
@@ -180,6 +184,7 @@ impl Server {
             mouse: Default::default(),
             overlay: None,
             menu: None,
+            epoch: Instant::now(),
         }
     }
 
@@ -187,14 +192,18 @@ impl Server {
         let mut last_render = Instant::now();
         let mut minute = chrono::Local::now().format("%H:%M").to_string();
         let mut last_detect = Instant::now();
+        let mut animation_due: Option<Instant> = None;
         while !self.quit {
             let until_detect = agents::DETECT_INTERVAL.saturating_sub(last_detect.elapsed());
+            let until_animation = animation_due
+                .map(|due| due.saturating_duration_since(Instant::now()))
+                .unwrap_or(until_detect);
             let timeout = if self.dirty {
                 FRAME
                     .saturating_sub(last_render.elapsed())
                     .min(until_detect)
             } else {
-                until_detect
+                until_detect.min(until_animation)
             };
             match rx.recv_timeout(timeout) {
                 Ok(event) => self.handle(event),
@@ -213,9 +222,15 @@ impl Server {
                 minute = now_minute;
                 self.dirty = true;
             }
+            if animation_due.is_some_and(|due| Instant::now() >= due) {
+                self.dirty = true;
+            }
             if self.dirty && last_render.elapsed() >= FRAME {
                 self.render();
                 last_render = Instant::now();
+                animation_due = self
+                    .next_animation(last_render)
+                    .map(|frame| last_render + frame);
             }
         }
         for window in self.windows.values_mut() {
@@ -320,6 +335,9 @@ impl Server {
             client.output.invalidate();
         }
         self.relayout();
+        for window in self.windows.values_mut() {
+            window.slide = None;
+        }
     }
 
     /// Area the windows of a workspace share.
@@ -331,35 +349,41 @@ impl Server {
     /// Computes every window's rectangle and resizes its terminal.
     fn relayout(&mut self) {
         let area = self.work_area();
+        let mut targets = Vec::new();
         for space in &self.model.spaces {
             for ws in &space.workspaces {
                 let rects = layout::fibonacci(area, ws.tiled.len(), &ws.ratios);
-                for (id, rect) in ws.tiled.iter().zip(rects) {
-                    let rect = if ws.fullscreen == Some(*id) {
-                        area
-                    } else {
-                        rect
-                    };
-                    if let Some(window) = self.windows.get_mut(id) {
-                        window.rect = rect;
-                    }
-                }
+                targets.extend(ws.tiled.iter().copied().zip(rects));
                 for id in &ws.floating {
                     if let Some(window) = self.windows.get_mut(id) {
-                        let rect = window.float_rect.unwrap_or_else(|| centered(area, 2, 3));
-                        let rect = if ws.fullscreen == Some(*id) {
-                            area
-                        } else {
-                            rect
-                        };
-                        window.float_rect = Some(rect);
-                        window.rect = rect;
+                        let rect = *window
+                            .float_rect
+                            .get_or_insert_with(|| centered(area, 2, 3));
+                        targets.push((*id, rect));
                     }
+                }
+                if let Some(id) = ws.fullscreen
+                    && let Some(target) = targets.iter_mut().find(|(t, _)| *t == id)
+                {
+                    target.1 = area;
                 }
             }
         }
-        for window in self.windows.values_mut() {
-            let inner = inner(window.rect);
+        let now = Instant::now();
+        let visible: Vec<WindowId> = self.model.workspace().windows().collect();
+        let slides = self.slides();
+        for (id, rect) in targets {
+            let Some(window) = self.windows.get_mut(&id) else {
+                continue;
+            };
+            if window.rect != rect && slides && visible.contains(&id) {
+                window.slide = Some(motion::Slide {
+                    from: motion::displayed(window.rect, window.slide, now),
+                    start: now,
+                });
+            }
+            window.rect = rect;
+            let inner = inner(rect);
             window.pane.resize(inner.width, inner.height);
         }
         self.dirty = true;
@@ -431,10 +455,19 @@ impl Server {
                 float_rect: None,
                 rect: area,
                 detect: Default::default(),
+                slide: None,
             },
         );
         self.model.add(at, id, popup);
         self.relayout();
+        if self.slides()
+            && let Some(window) = self.windows.get_mut(&id)
+        {
+            window.slide = Some(motion::Slide {
+                from: motion::seed(window.rect),
+                start: Instant::now(),
+            });
+        }
         Some(id)
     }
 

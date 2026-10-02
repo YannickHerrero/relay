@@ -1,5 +1,7 @@
 //! Right-click context menus.
 
+use std::time::Instant;
+
 use crossterm::event::{KeyCode, KeyEvent, MouseButton, MouseEvent, MouseEventKind};
 use ratatui::buffer::Buffer;
 use ratatui::layout::{Position, Rect};
@@ -18,6 +20,7 @@ pub struct Menu {
     pub y: u16,
     pub items: Vec<(String, Action)>,
     pub selected: usize,
+    pub opened: Instant,
 }
 
 impl Menu {
@@ -54,6 +57,7 @@ impl Server {
             y,
             items,
             selected: 0,
+            opened: Instant::now(),
         });
     }
 
@@ -85,6 +89,7 @@ impl Server {
             y: 1,
             items,
             selected: 0,
+            opened: Instant::now(),
         });
     }
 

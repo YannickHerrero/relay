@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use alacritty_terminal::grid::Scroll;
 use crossterm::event::{Event, KeyEvent, KeyEventKind};
 
@@ -7,9 +9,19 @@ use crate::keymap::{Entry, Node};
 use crate::keys::{Chord, Key};
 
 /// Keys typed after the leader, while its menu is open.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct Leader {
     pub path: Vec<Chord>,
+    pub opened: Instant,
+}
+
+impl Leader {
+    fn new() -> Leader {
+        Leader {
+            path: Vec::new(),
+            opened: Instant::now(),
+        }
+    }
 }
 
 impl Server {
@@ -44,7 +56,7 @@ impl Server {
             return;
         }
         if chord == Some(self.keymap.leader) {
-            self.leader = Some(Leader::default());
+            self.leader = Some(Leader::new());
             return;
         }
         if let Some(action) = chord.and_then(|c| self.keymap.direct.get(&c)).cloned() {
@@ -69,7 +81,9 @@ impl Server {
                 return;
             }
             Key::Backspace => {
-                self.leader = Some(Leader::default());
+                if let Some(leader) = &mut self.leader {
+                    leader.path.clear();
+                }
                 return;
             }
             _ => {}

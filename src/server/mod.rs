@@ -3,6 +3,7 @@
 
 mod actions;
 mod agents;
+mod agents_view;
 mod api;
 mod bar;
 mod chrome;
@@ -105,6 +106,8 @@ pub struct Server {
     menu: Option<menu::Menu>,
     rename: Option<rename::RenamePrompt>,
     toast: Option<toast::Toast>,
+    /// The agents dashboard lists only the current space's agents.
+    agents_current_space: bool,
     /// Start of the shimmer cycle.
     epoch: Instant,
     /// Last state written to disk.
@@ -204,6 +207,7 @@ impl Server {
             menu: None,
             rename: None,
             toast: None,
+            agents_current_space: false,
             epoch: Instant::now(),
             saved: None,
         }

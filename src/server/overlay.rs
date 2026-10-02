@@ -23,6 +23,7 @@ pub enum ListKind {
     Palette,
     Keys,
     Spaces,
+    Agents,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -172,6 +173,7 @@ impl Server {
             ListKind::Palette => self.palette_rows(),
             ListKind::Keys => self.key_rows(),
             ListKind::Spaces => self.space_rows(),
+            ListKind::Agents => self.agent_rows(),
         };
         filter(rows, &overlay.query)
     }
@@ -235,6 +237,9 @@ impl Server {
     fn list_key(&mut self, overlay: &mut ListOverlay, key: KeyEvent) -> Outcome {
         if overlay.kind == ListKind::Spaces {
             return self.spaces_key(overlay, key);
+        }
+        if overlay.kind == ListKind::Agents {
+            return self.agents_key(overlay, key);
         }
         let toggles = Chord::from_event(&key)
             .and_then(|c| self.keymap.direct.get(&c))
@@ -309,11 +314,20 @@ impl Server {
                 "Spaces",
                 "⏎ switch · N new · E rename · D D delete · esc close",
             ),
+            ListKind::Agents => ("Agents", "j k select · ⏎ focus · tab scope · esc close"),
         };
         let inner = panel::draw(panel_rect, title, footer, buf);
-        match &overlay.prompt {
-            Some(prompt) => self.draw_input(inner, prompt.title(), &prompt.text, buf),
-            None => self.draw_input(inner, "❯", &overlay.query, buf),
+        match (&overlay.prompt, overlay.kind) {
+            (Some(prompt), _) => self.draw_input(inner, prompt.title(), &prompt.text, buf),
+            (None, ListKind::Agents) => {
+                let scope = if self.agents_current_space {
+                    format!("space {}", self.model.space().name)
+                } else {
+                    "all spaces".to_owned()
+                };
+                self.draw_input(inner, "scope ›", &scope, buf);
+            }
+            (None, _) => self.draw_input(inner, "❯", &overlay.query, buf),
         }
         if overlay.confirm_delete {
             let warn = "press D again to delete";

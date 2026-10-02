@@ -49,6 +49,7 @@ Everything else goes through the leader, `Ctrl+B`, whose menu lists the keys at 
 | r | Resize mode: j / ; width, k / l height (or arrows), Escape to leave |
 | 1…9 | Workspace |
 | s / Tab | Next occupied / recent workspace |
+| d | Agents dashboard |
 | m, 1…9 | Move the window to a workspace and follow it |
 | o | Space picker |
 | n / p | Next / previous workspace |
@@ -75,6 +76,8 @@ Programs that ask for the mouse (lazygit, vim) get it; hold Shift to select or o
 ## Agents
 
 Each window running Claude Code or pi shows a badge: **working**, **needs you**, **done** (finished while you looked elsewhere) or **idle**. The bar counts them; a window waiting for an answer gets an orange border.
+
+`Ctrl+B d` opens the agents dashboard: every agent of every space, most urgent first. `j` / `k` select, Enter jumps to the agent's window, Tab switches between all spaces and the current one (remembered across restarts).
 
 State is read from the screen with herdr's detection rules. Integrations add more:
 
@@ -130,7 +133,7 @@ lazygit = "lazygit"
 "Mod+G" = ""
 ```
 
-Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `client detach`, `config reload`, `server stop`.
+Both files reload when saved. Commands: `window focus|move left|right|up|down`, `window resize --width|--height ±N%`, `window resize-mode`, `window toggle-fullscreen`, `window toggle-float`, `window set-tiling`, `window close`, `window rename`, `window move-workspace N [--follow]`, `workspace N`, `workspace next|prev|next-active`, `workspace recent`, `space next|recent|picker`, `spawn <program>`, `popup <command>`, `palette toggle`, `keybindings toggle`, `agents toggle`, `client detach`, `config reload`, `server stop`.
 
 ## State
 

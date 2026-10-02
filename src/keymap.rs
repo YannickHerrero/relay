@@ -43,6 +43,7 @@ pub const DEFAULTS: &[(&str, &str)] = &[
     ("Leader K", "window move up"),
     ("Leader L", "window move right"),
     ("Leader s", "workspace next-active"),
+    ("Leader d", "agents toggle"),
     ("Leader Tab", "workspace recent"),
     ("Leader 1", "workspace 1"),
     ("Leader 2", "workspace 2"),
